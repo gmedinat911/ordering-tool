@@ -1,1 +1,29 @@
-<!-- placeholder; actual enhanced dashboard HTML content to be regenerated -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cocktail Queue Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="bg-gray-100 text-gray-900">
+    <div class="flex justify-between items-center px-4 py-3 border-b shadow-sm bg-white">
+      <h1 class="text-xl font-bold">🍸 Orders Dashboard</h1>
+      <div class="flex gap-2 items-center">
+        <button id="refreshBtn" class="bg-blue-500 hover:bg-blue-600 text-white text-sm px-3 py-1 rounded">Refresh</button>
+        <button id="clearBtn" class="bg-yellow-500 hover:bg-yellow-600 text-white text-sm px-3 py-1 rounded">Clear Queue</button>
+        <button id="logoutBtn" class="bg-red-500 hover:bg-red-600 text-white text-sm px-3 py-1 rounded">Logout</button>
+      </div>
+    </div>
+    <div class="px-4 py-2 text-sm text-gray-500" id="lastUpdated">Last updated: --</div>
+    <div class="p-4 overflow-x-auto">
+      <div id="queue" class="flex gap-4 flex-nowrap overflow-x-auto snap-x snap-mandatory pb-4">
+        <!-- Orders will appear here -->
+      </div>
+    </div>
+    <audio id="newOrderSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_03e3a98b39.mp3?filename=notification-1-124903.mp3" preload="auto"></audio>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="dashboard.js"></script>
+  </body>
+</html>
