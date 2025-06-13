@@ -10,10 +10,9 @@ const jwt = require('jsonwebtoken');
 const DRINK_MAP = require(path.join(__dirname, 'drinks.json'));
 
 // PostgreSQL connection pool
-const { Pool } = require('pg');
-const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
 // Seeder for drinks.json
 const seedDrinks = require('./seedDrinks');
+const pool = require('./db');
 
 const app = express();
 const port = process.env.PORT || 3000;
