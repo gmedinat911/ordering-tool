@@ -5,7 +5,6 @@ const bodyParser = require('body-parser');
 const axios = require('axios');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
-const pool = require('./db');
 
 
 // Load drink mapping from external JSON file
