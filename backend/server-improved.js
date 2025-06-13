@@ -1,4 +1,3 @@
-// Minimal edit version of your original server.js, preserving line count and structure as much as possible
 require('dotenv').config();
 const path = require('path');
 const express = require('express');
@@ -7,10 +6,7 @@ const axios = require('axios');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 
-// Load drink mapping from external JSON file
 const DRINK_MAP = require(path.join(__dirname, 'drinks.json'));
-
-// PostgreSQL connection pool and seeder
 const seedDrinks = require('./seedDrinks');
 const pool = require('./db');
 
@@ -18,25 +14,18 @@ const app = express();
 const port = process.env.PORT || 3000;
 const DEBUG = /^true$/i.test(process.env.DEBUG || 'true');
 
-/* ------------------------------------------------------------------
- * In-memory state
- * ------------------------------------------------------------------*/
 let queue = [];
 
-/* ------------------------------------------------------------------
- * Express setup
- * ------------------------------------------------------------------*/
 app.use(cors());
 app.use(bodyParser.json());
 
-/* ------------------------------------------------------------------
- * Auth helpers
- * ------------------------------------------------------------------*/
 const DASHBOARD_PASS = process.env.DASHBOARD_PASS;
 const JWT_SECRET = process.env.JWT_SECRET;
+
 function signToken() {
   return jwt.sign({ role: 'admin' }, JWT_SECRET, { expiresIn: '2h' });
 }
+
 function verifyJWT(req, res, next) {
   const auth = req.get('authorization') || '';
   const token = auth.replace(/Bearer\s+/i, '');
@@ -50,11 +39,8 @@ function verifyJWT(req, res, next) {
   }
 }
 
-/* ------------------------------------------------------------------
- * Healthcheck
- * ------------------------------------------------------------------*/
+// Ping and health check routes
 app.get('/ping', (req, res) => res.send('✅ Server is alive'));
-
 app.get('/health', async (req, res) => {
   try {
     const result = await pool.query('SELECT NOW()');
@@ -65,25 +51,15 @@ app.get('/health', async (req, res) => {
   }
 });
 
-/* ------------------------------------------------------------------
- * Login route (frontend auth)
- * ------------------------------------------------------------------*/
+// Login route
 app.post('/login', (req, res) => {
   const { password } = req.body || {};
-  const ip = req.headers['x-forwarded-for'] || req.ip;
-  console.log(`🔐 Login attempt from ${ip} @ ${new Date().toISOString()}`);
-  if (password !== DASHBOARD_PASS) {
-    console.log('❌ Login failed');
-    return res.status(401).send('Unauthorized');
-  }
+  if (password !== DASHBOARD_PASS) return res.status(401).send('Unauthorized');
   const token = signToken();
-  console.log('✅ Login success – JWT issued');
   return res.json({ token });
 });
 
-/* ------------------------------------------------------------------
- * WhatsApp admin numbers & helper
- * ------------------------------------------------------------------*/
+// WhatsApp helpers
 const ADMIN_NUMBERS = (process.env.ADMIN_NUMBERS || '')
   .split(',')
   .map(n => n.trim())
@@ -96,9 +72,7 @@ const sendWhatsApp = (to, text) =>
     { headers: { Authorization: `Bearer ${process.env.ACCESS_TOKEN}` } }
   );
 
-/* ------------------------------------------------------------------
- * Admin middleware (WhatsApp commands)
- * ------------------------------------------------------------------*/
+// Admin handler
 async function adminHandler(req, res, next) {
   try {
     const message = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
@@ -106,23 +80,21 @@ async function adminHandler(req, res, next) {
     const text = (message?.text?.body || '').trim();
     if (!ADMIN_NUMBERS.includes(from)) return next();
     const lower = text.toLowerCase().trim();
-    if (['queue', 'clear'].includes(lower) || !isNaN(parseInt(lower, 10))) {
-      console.log(`👑 Admin cmd by ${from}: ${lower}`);
-    }
+
     if (lower === 'queue') {
-      if (!queue.length) {
-        await sendWhatsApp(from, '📭 Queue is empty.');
-      } else {
-        const summary = queue.map((o, i) => `#${i+1} • ${o.name} → ${o.cocktail}`).join('\n');
-        await sendWhatsApp(from, `📋 Current orders (${queue.length}):\n${summary}\n\nReply with a number to mark done.`);
-      }
+      const summary = queue.length
+        ? queue.map((o, i) => `#${i + 1} • ${o.name} → ${o.cocktail}`).join('\n')
+        : '📭 Queue is empty.';
+      await sendWhatsApp(from, `📋 ${summary}`);
       return res.sendStatus(200);
     }
+
     if (lower === 'clear') {
       queue = [];
       await sendWhatsApp(from, '🗑️ Queue cleared.');
       return res.sendStatus(200);
     }
+
     const idx = parseInt(lower, 10);
     if (!isNaN(idx)) {
       const pos = idx - 1;
@@ -135,7 +107,8 @@ async function adminHandler(req, res, next) {
       await sendWhatsApp(from, `✅ Order #${idx} served.`);
       return res.sendStatus(200);
     }
-    if (DEBUG) console.log(`⚠️ Unknown admin text, passing to customer flow: "${text}"`);
+
+    if (DEBUG) console.log(`⚠️ Unknown admin text: "${text}"`);
     return next();
   } catch (err) {
     console.error('Admin handler error:', err);
@@ -143,56 +116,39 @@ async function adminHandler(req, res, next) {
   }
 }
 
-/* ------------------------------------------------------------------
- * Main webhook (adminHandler first)
- * ------------------------------------------------------------------*/
+// WhatsApp webhook
 app.post('/webhook', adminHandler, async (req, res) => {
   const value = req.body.entry?.[0]?.changes?.[0]?.value;
-  if (!value?.messages?.[0]) {
-    if (DEBUG) {
-      const status = value.statuses?.[0]?.status || 'unknown';
-      console.log(`ℹ️ Ignored status event (${status})`);
-    }
-    return res.sendStatus(200);
-  }
-  const message = value.messages[0];
-  const contact = value.contacts?.[0];
+  const message = value?.messages?.[0];
+  const contact = value?.contacts?.[0];
+  if (!message) return res.sendStatus(200);
+
   const from = message.from;
   const fullName = contact?.profile?.name || '';
   const firstName = fullName.split(/\s+/)[0] || from;
   const rawText = (message.text?.body || '').trim();
-  if (DEBUG) console.log('📝 Incoming text:', rawText);
 
   let stripped = rawText.replace(/^i['’]?d\s+like\s+to\s+order\s+the\s+/i, '').trim();
-  let cleaned = stripped.replace(/['’]/g, '').trim();
-  cleaned = cleaned.replace(/[!?.。，,]+$/g, '').trim();
-  if (DEBUG) console.log('🔍 Cleaned text:', cleaned);
-
-  if (cleaned.toLowerCase().includes('take a minute right now to send your first message')) {
-    if (DEBUG) console.log('ℹ️ Ignored tutorial message');
-    return res.sendStatus(200);
-  }
+  let cleaned = stripped.replace(/['’]/g, '').replace(/[!?.。，,]+$/g, '').trim();
+  if (cleaned.toLowerCase().includes('take a minute')) return res.sendStatus(200);
 
   const key = cleaned.toLowerCase();
   const mapping = DRINK_MAP[key] || Object.values(DRINK_MAP).find(e => key.includes(e.canonical.toLowerCase()));
+
   if (!mapping) {
-    if (DEBUG) console.log(`❌ Invalid order from ${from}: "${cleaned}"`);
-    await sendWhatsApp(from, `❌ Invalid order \"${stripped}\". \n Please check the menu at: https://tinyurl.com/53bmccax `);
+    await sendWhatsApp(from, `❌ Invalid order \"${stripped}\". \n Please check the menu at: https://tinyurl.com/53bmccax`);
     return res.sendStatus(200);
   }
-  const canonical = mapping.canonical;
-  if (DEBUG) console.log(`✅ Parsed drink: display='${stripped}' → canonical='${canonical}'`);
 
+  const canonical = mapping.canonical;
   queue.push({ id: Date.now(), from, name: firstName, cocktail: canonical, displayName: stripped, createdAt: Date.now() });
   queue.sort((a, b) => a.createdAt - b.createdAt);
-  console.log(`✅ New order from ${from}: ${stripped}`);
+
   await sendWhatsApp(from, `👨‍🍳 Hi ${firstName}, we received your order for "${stripped}". We're preparing it now!`);
   return res.sendStatus(200);
 });
 
-/* ------------------------------------------------------------------
- * Queue API (protected by JWT)
- * ------------------------------------------------------------------*/
+// Dashboard API
 app.get('/queue', verifyJWT, (req, res) => res.json(queue));
 app.post('/clear', verifyJWT, (req, res) => {
   queue = [];
@@ -207,16 +163,15 @@ app.post('/done', verifyJWT, async (req, res) => {
   return res.send('Done');
 });
 
-/* ------------------------------------------------------------------
- * Seed drinks, then start server
- * ------------------------------------------------------------------*/
+// Startup logic
 (async () => {
   try {
     await seedDrinks();
   } catch (err) {
-    console.error('Fatal error during drink-seeding:', err);
-    process.exit(1);
+    console.error('🚨 Failed to seed drinks on startup:', err);
+    if (process.env.NODE_ENV === 'production') process.exit(1);
   }
+
   app.listen(port, () => {
     console.log(`🚀 Server running on port ${port}`);
     if (DEBUG) console.log('🛠️ Debugging enabled');
