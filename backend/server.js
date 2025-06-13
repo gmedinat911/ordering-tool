@@ -5,28 +5,34 @@ const bodyParser = require('body-parser');
 const axios = require('axios');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
-const { Pool } = require('pg');
-
-// --- PostgreSQL Setup ---
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
-});
 
 // Load drink mapping from external JSON file
-// (used only for seeding or fallback fuzzy lookup)
 const DRINK_MAP = require(path.join(__dirname, 'drinks.json'));
 
+// PostgreSQL connection pool
+const { Pool } = require('pg');
+const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+// Seeder for drinks.json
 const seedDrinks = require('./seedDrinks');
 
 const app = express();
 const port = process.env.PORT || 3000;
 const DEBUG = /^true$/i.test(process.env.DEBUG || 'true');
 
+/* ------------------------------------------------------------------
+ * In-memory state
+ * ------------------------------------------------------------------*/
+let queue = [];
+
+/* ------------------------------------------------------------------
+ * Express setup
+ * ------------------------------------------------------------------*/
 app.use(cors());
 app.use(bodyParser.json());
 
-// --- Auth Helpers ---
+/* ------------------------------------------------------------------
+ * Auth helpers
+ * ------------------------------------------------------------------*/
 const DASHBOARD_PASS = process.env.DASHBOARD_PASS;
 const JWT_SECRET = process.env.JWT_SECRET;
 function signToken() {
@@ -45,56 +51,14 @@ function verifyJWT(req, res, next) {
   }
 }
 
-// --- WhatsApp Helper ---
-const ADMIN_NUMBERS = (process.env.ADMIN_NUMBERS || '')
-  .split(',')
-  .map(n => n.trim())
-  .filter(Boolean);
-const sendWhatsApp = (to, text) =>
-  axios.post(
-    `https://graph.facebook.com/v19.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
-    { messaging_product: 'whatsapp', to, text: { body: text } },
-    { headers: { Authorization: `Bearer ${process.env.ACCESS_TOKEN}` } }
-  );
-
-// --- Database Functions ---
-async function insertOrder({ from, firstName, drinkId, displayName }) {
-  const res = await pool.query(
-    `INSERT INTO orders(from_number, first_name, drink_id, display_name)
-     VALUES($1,$2,$3,$4) RETURNING id, created_at`,
-    [from, firstName, drinkId, displayName]
-  );
-  return res.rows[0];
-}
-
-async function listOrders() {
-  const res = await pool.query(
-    `SELECT o.id, o.from_number AS from, o.first_name, d.display_name, o.created_at
-     FROM orders o
-     JOIN drinks d ON o.drink_id = d.id
-     WHERE o.status = 'pending'
-     ORDER BY o.created_at`
-  );
-  return res.rows;
-}
-
-async function serveOrder(id) {
-  const res = await pool.query(
-    `UPDATE orders
-     SET status = 'served', served_at = now()
-     WHERE id = $1 AND status = 'pending'
-     RETURNING *`,
-    [id]
-  );
-  return res.rows[0];
-}
-
-// --- Routes ---
-
-// Healthcheck
+/* ------------------------------------------------------------------
+ * Healthcheck
+ * ------------------------------------------------------------------*/
 app.get('/health', (req, res) => res.send('✅ Server is alive'));
 
-// Login route (frontend auth)
+/* ------------------------------------------------------------------
+ * Login route (frontend auth)
+ * ------------------------------------------------------------------*/
 app.post('/login', (req, res) => {
   const { password } = req.body || {};
   const ip = req.headers['x-forwarded-for'] || req.ip;
@@ -108,7 +72,23 @@ app.post('/login', (req, res) => {
   return res.json({ token });
 });
 
-// Admin middleware (WhatsApp commands)
+/* ------------------------------------------------------------------
+ * WhatsApp admin numbers & helper
+ * ------------------------------------------------------------------*/
+const ADMIN_NUMBERS = (process.env.ADMIN_NUMBERS || '')
+  .split(',')
+  .map(n => n.trim())
+  .filter(Boolean);
+const sendWhatsApp = (to, text) =>
+  axios.post(
+    `https://graph.facebook.com/v19.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
+    { messaging_product: 'whatsapp', to, text: { body: text } },
+    { headers: { Authorization: `Bearer ${process.env.ACCESS_TOKEN}` } }
+  );
+
+/* ------------------------------------------------------------------
+ * Admin middleware (WhatsApp commands)
+ * ------------------------------------------------------------------*/
 async function adminHandler(req, res, next) {
   try {
     const message = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
@@ -116,123 +96,120 @@ async function adminHandler(req, res, next) {
     const text = (message?.text?.body || '').trim();
     if (!ADMIN_NUMBERS.includes(from)) return next();
     const lower = text.toLowerCase().trim();
-
-    // List queue
+    // Log only valid commands
+    if (['queue', 'clear'].includes(lower) || !isNaN(parseInt(lower, 10))) {
+      console.log(`👑 Admin cmd by ${from}: ${lower}`);
+    }
     if (lower === 'queue') {
-      const orders = await listOrders();
-      if (!orders.length) {
+      if (!queue.length) {
         await sendWhatsApp(from, '📭 Queue is empty.');
       } else {
-        const summary = orders
-          .map((o, i) => `#${i + 1} • ${o.first_name} → ${o.display_name}`)
-          .join('\n');
-        await sendWhatsApp(
-          from,
-          `📋 Current orders (${orders.length}):\n${summary}\n\nReply with a number to mark done.`
-        );
+        const summary = queue.map((o, i) => `#${i+1} • ${o.name} → ${o.cocktail}`).join('\n');
+        await sendWhatsApp(from, `📋 Current orders (${queue.length}):\n${summary}\n\nReply with a number to mark done.`);
       }
       return res.sendStatus(200);
     }
-
-    // Clear queue
     if (lower === 'clear') {
-      await pool.query(`UPDATE orders SET status='cancelled' WHERE status='pending'`);
+      queue = [];
       await sendWhatsApp(from, '🗑️ Queue cleared.');
       return res.sendStatus(200);
     }
-
-    // Serve specific order
     const idx = parseInt(lower, 10);
     if (!isNaN(idx)) {
-      const orders = await listOrders();
-      if (idx < 1 || idx > orders.length) {
+      const pos = idx - 1;
+      if (pos < 0 || pos >= queue.length) {
         await sendWhatsApp(from, `❌ No order #${idx}.`);
-      } else {
-        const order = orders[idx - 1];
-        await serveOrder(order.id);
-        await sendWhatsApp(order.from, `🍸 Your "${order.display_name}" is ready!`);
-        await sendWhatsApp(from, `✅ Order #${idx} served.`);
+        return res.sendStatus(200);
       }
+      const [order] = queue.splice(pos, 1);
+      await sendWhatsApp(order.from, `🍸 Your "${order.displayName}" is ready!`);
+      await sendWhatsApp(from, `✅ Order #${idx} served.`);
       return res.sendStatus(200);
     }
-
-    // Unknown admin command
-    return next();
+     // Not a recognized admin command—pass it to customer flow
+      if (DEBUG) console.log(`⚠️ Unknown admin text, passing to customer flow: "${text}"`);
+      return next();
   } catch (err) {
     console.error('Admin handler error:', err);
     return res.sendStatus(500);
   }
 }
 
-// Webhook (main)
+/* ------------------------------------------------------------------
+ * Main webhook (adminHandler first)
+ * ------------------------------------------------------------------*/
 app.post('/webhook', adminHandler, async (req, res) => {
   const value = req.body.entry?.[0]?.changes?.[0]?.value;
-  if (!value?.messages?.[0]) return res.sendStatus(200);
-
+  if (!value?.messages?.[0]) {
+    if (DEBUG) {
+      const status = value.statuses?.[0]?.status || 'unknown';
+      console.log(`ℹ️ Ignored status event (${status})`);
+    }
+    return res.sendStatus(200);
+  }
   const message = value.messages[0];
   const contact = value.contacts?.[0];
   const from = message.from;
   const fullName = contact?.profile?.name || '';
   const firstName = fullName.split(/\s+/)[0] || from;
   const rawText = (message.text?.body || '').trim();
+  if (DEBUG) console.log('📝 Incoming text:', rawText);
 
-  // Normalize input
+
+  // 1) Strip prefix
   let stripped = rawText.replace(/^i['’]?d\s+like\s+to\s+order\s+the\s+/i, '').trim();
-  let cleaned = stripped.replace(/['’]/g, '').replace(/[!?.。，,]+$/g, '').trim();
+  // 2) Normalize apostrophes and remove
+  let cleaned = stripped.replace(/['’]/g, '').trim();
+  // 3) Remove trailing punctuation
+  cleaned = cleaned.replace(/[!?.。，,]+$/g, '').trim();
+  if (DEBUG) console.log('🔍 Cleaned text:', cleaned);
 
-  // Map to drink
-  const key = cleaned.toLowerCase();
-  const mapping =
-    DRINK_MAP[key] ||
-    (await pool.query(`SELECT id, canonical FROM drinks WHERE LOWER(canonical)=LOWER($1)`, [cleaned]))
-      .rows[0];
-  if (!mapping) {
-    await sendWhatsApp(
-      from,
-      `❌ Invalid order \"${stripped}\". Please check the menu at: https://tinyurl.com/53bmccax`
-    );
+  // 4) Ignore tutorial multi-line messages
+  if (cleaned.toLowerCase().includes('take a minute right now to send your first message')) {
+    if (DEBUG) console.log('ℹ️ Ignored tutorial message');
     return res.sendStatus(200);
   }
 
-  // Insert order into DB
-  const { id } = await insertOrder({
-    from,
-    firstName,
-    drinkId: mapping.id,
-    displayName: stripped,
-  });
+  // 5) Map to canonical names loaded from drinks.json
+   const key = cleaned.toLowerCase();
+  const mapping = DRINK_MAP[key] || Object.values(DRINK_MAP).find(e => key.includes(e.canonical.toLowerCase()));
+  if (!mapping) {
+    if (DEBUG) console.log(`❌ Invalid order from ${from}: "${cleaned}"`);
+    await sendWhatsApp(from, `❌ Invalid order \"${stripped}\". \n Please check the menu at: https://tinyurl.com/53bmccax `);
+    return res.sendStatus(200);
+  }
+  const canonical = mapping.canonical;
+  if (DEBUG) console.log(`✅ Parsed drink: display='${stripped}' → canonical='${canonical}'`);
 
-  console.log(`✅ New order #${id} from ${from}: ${stripped}`);
-  await sendWhatsApp(
-    from,
-    `👨‍🍳 Hi ${firstName}, we received your order for "${stripped}". We're preparing it now!`
-  );
+  // 5) Queue and acknowledge.
+  queue.push({ id: Date.now(), from, name: firstName, cocktail: canonical, displayName: stripped, createdAt: Date.now() });
+  queue.sort((a, b) => a.createdAt - b.createdAt);
+  console.log(`✅ New order from ${from}: ${stripped}`);
+
+  await sendWhatsApp(from, `👨‍🍳 Hi ${firstName}, we received your order for "${stripped}". We're preparing it now!`);
 
   return res.sendStatus(200);
 });
 
-// Protected API endpoints
-app.get('/queue', verifyJWT, async (req, res) => {
-  const orders = await listOrders();
-  res.json(orders);
+/* ------------------------------------------------------------------
+ * Queue API (protected by JWT)
+ * ------------------------------------------------------------------*/
+app.get('/queue', verifyJWT, (req, res) => res.json(queue));
+app.post('/clear', verifyJWT, (req, res) => {
+  queue = [];
+  return res.send('Queue cleared');
 });
-
-app.post('/clear', verifyJWT, async (req, res) => {
-  await pool.query(`UPDATE orders SET status='cancelled' WHERE status='pending'`);
-  res.send('Queue cleared');
-});
-
 app.post('/done', verifyJWT, async (req, res) => {
   const { id } = req.body;
-  const order = await serveOrder(id);
-  if (!order) return res.status(404).send('Order not found');
-  await sendWhatsApp(order.from_number, `🍸 Your "${order.display_name}" is ready!`);
-  res.send('Done');
+  const idx = queue.findIndex(o => o.id === id);
+  if (idx === -1) return res.status(404).send('Order not found');
+  const [order] = queue.splice(idx, 1);
+  await sendWhatsApp(order.from, `🍸 Your "${order.displayName}" is ready!`);
+  return res.send('Done');
 });
 
-const seedDrinks = require('./seedDrinks');
-
-// Seed drinks then start server
+/* ------------------------------------------------------------------ */
+// Seed drinks, then start server
 (async () => {
   try {
     await seedDrinks();
@@ -240,7 +217,6 @@ const seedDrinks = require('./seedDrinks');
     console.error('Fatal error during drink-seeding:', err);
     process.exit(1);
   }
-
   app.listen(port, () => {
     console.log(`Server running on port ${port}`);
     if (DEBUG) console.log('🛠️ Debugging enabled');
