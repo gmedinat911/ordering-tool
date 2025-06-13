@@ -5,6 +5,9 @@ const bodyParser = require('body-parser');
 const axios = require('axios');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
+const pool = require('./db');
+const seedDrinks = require('./seedDrinks');
+
 
 // Load drink mapping from external JSON file
 const DRINK_MAP = require(path.join(__dirname, 'drinks.json'));
@@ -54,8 +57,19 @@ function verifyJWT(req, res, next) {
 /* ------------------------------------------------------------------
  * Healthcheck
  * ------------------------------------------------------------------*/
-app.get('/health', (req, res) => res.send('✅ Server is alive'));
+// Lightweight health ping
+app.get('/ping', (req, res) => res.send('✅ Server is alive'));
 
+// Full health check with DB
+app.get('/health', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT NOW()');
+    res.status(200).json({ status: 'ok', timestamp: result.rows[0].now });
+  } catch (err) {
+    console.error('❌ /health DB check failed:', err);
+    res.status(500).json({ status: 'error', message: 'DB connection failed' });
+  }
+});
 /* ------------------------------------------------------------------
  * Login route (frontend auth)
  * ------------------------------------------------------------------*/
@@ -217,8 +231,17 @@ app.post('/done', verifyJWT, async (req, res) => {
     console.error('Fatal error during drink-seeding:', err);
     process.exit(1);
   }
+  (async () => {
+  try {
+    await seedDrinks(); // auto-runs at boot
+  } catch (err) {
+    console.error('🚨 Failed to seed drinks on startup:', err);
+    // Optional: don't exit in dev
+    if (process.env.NODE_ENV === 'production') process.exit(1);
+  }
+
   app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
+    console.log(`🚀 Server running on port ${port}`);
     if (DEBUG) console.log('🛠️ Debugging enabled');
   });
 })();
