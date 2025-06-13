@@ -9,6 +9,12 @@ const jwt = require('jsonwebtoken');
 // Load drink mapping from external JSON file
 const DRINK_MAP = require(path.join(__dirname, 'drinks.json'));
 
+// PostgreSQL connection pool
+const { Pool } = require('pg');
+const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+// Seeder for drinks.json
+const seedDrinks = require('./seedDrinks');
+
 const app = express();
 const port = process.env.PORT || 3000;
 const DEBUG = /^true$/i.test(process.env.DEBUG || 'true');
@@ -203,7 +209,16 @@ app.post('/done', verifyJWT, async (req, res) => {
 });
 
 /* ------------------------------------------------------------------ */
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
-  if (DEBUG) console.log('🛠️ Debugging enabled');
-});
+// Seed drinks, then start server
+(async () => {
+  try {
+    await seedDrinks();
+  } catch (err) {
+    console.error('Fatal error during drink-seeding:', err);
+    process.exit(1);
+  }
+  app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+    if (DEBUG) console.log('🛠️ Debugging enabled');
+  });
+})();
