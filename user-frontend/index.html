@@ -41,6 +41,7 @@
       box-sizing: border-box;
     }
     .drink {
+      position: relative;
       background: linear-gradient(135deg, #FFE29F 0%, #FFA99F 100%);
       border-radius: 16px;
       padding: 18px;
@@ -76,6 +77,20 @@
       font-size: 1rem;
       line-height: 1.4;
     }
+
+    /* Out-of-stock badge */
+    .drink .badge {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: rgba(255,255,255,0.8);
+      color: #d00;
+      font-weight: bold;
+      padding: 4px 8px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+    }
+
     .order-btn {
       background-color: #FF6F61;
       color: white;
@@ -92,6 +107,13 @@
     .order-btn:hover {
       background-color: #E65B50;
     }
+    /* Disabled state */
+    .order-btn.disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
     @media (max-width: 600px) {
       .drink {
         width: 100%;
@@ -106,6 +128,7 @@
   </header>
   <section class="menu">
 
+    <!-- Tommy’s Glow (in stock) -->
     <div class="drink">
       <h3>Tommy’s Glow 🌺</h3>
       <p>A lighter take on the classic — tequila, fresh lime juice, and agave syrup for a naturally sweet and citrusy refreshment.</p>
@@ -114,38 +137,39 @@
       </a>
     </div>
 
+    <!-- Mint Condition Mojito (out of stock) -->
     <div class="drink">
+      <div class="badge">Out of Stock</div>
       <h3>Mint Condition Mojito 🌿</h3>
       <p>Crisp mint leaves muddled with lime and sugar, topped with white rum and soda water for ultimate freshness.</p>
-      <a class="order-btn" href="https://wa.me/19844809046?text=I%27d%20like%20to%20order%20the%20Mint%20Condition%20Mojito%20!">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" style="height: 16px; vertical-align: middle; margin-right: 6px;">Order WhatsApp
-      </a>
+      <a class="order-btn disabled">Out of Stock</a>
     </div>
 
+    <!-- Blue Breeze Mojito (out of stock) -->
     <div class="drink">
+      <div class="badge">Out of Stock</div>
       <h3>Blue Breeze Mojito 💙</h3>
       <p>A fruity twist on the original — blueberries, mint, lime, and rum combine into a refreshing and slightly sweet delight.</p>
-      <a class="order-btn" href="https://wa.me/19844809046?text=I%27d%20like%20to%20order%20the%20Blue%20Breeze%20Mojito%20!">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" style="height: 16px; vertical-align: middle; margin-right: 6px;">Order WhatsApp
-      </a>
+      <a class="order-btn disabled">Out of Stock</a>
     </div>
 
+    <!-- Paloma Paradise (out of stock) -->
     <div class="drink">
+      <div class="badge">Out of Stock</div>
       <h3>Paloma Paradise 🍊</h3>
       <p>Tequila, grapefruit soda, and lime juice create this zesty, bubbly Mexican classic with a touch of sea salt.</p>
-      <a class="order-btn" href="https://wa.me/19844809046?text=I%27d%20like%20to%20order%20the%20Paloma%20Paradise%20!">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" style="height: 16px; vertical-align: middle; margin-right: 6px;">Order WhatsApp
-      </a>
+      <a class="order-btn disabled">Out of Stock</a>
     </div>
 
+    <!-- Cosmo Crush (out of stock) -->
     <div class="drink">
+      <div class="badge">Out of Stock</div>
       <h3>Cosmo Crush 💋</h3>
       <p>Elegant and tart — vodka, cranberry juice, orange liqueur, and fresh lime served in a chilled martini glass.</p>
-      <a class="order-btn" href="https://wa.me/19844809046?text=I%27d%20like%20to%20order%20the%20Cosmo%20Crush%20!">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" style="height: 16px; vertical-align: middle; margin-right: 6px;">Order WhatsApp
-      </a>
+      <a class="order-btn disabled">Out of Stock</a>
     </div>
 
+    <!-- Espresso Chilltini (in stock) -->
     <div class="drink">
       <h3>Espresso Chilltini ☕</h3>
       <p>A creamy caffeine kick — vodka, espresso, and coffee liqueur shaken over ice and garnished with espresso beans.</p>
