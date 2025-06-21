@@ -1,65 +1,159 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
-    <title>Myrtle Beach Vacation</title>
-    <meta name="description" content="Your beachside cocktail ordering experience." />
-    <!-- Other meta tags and links -->
-  </head>
-  <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
-  </body>
-</html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Myrtle Beach Vacation</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(to bottom right, #7DEBF1, #FFF5B7);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    header {
+      text-align: center;
+      padding: 20px;
+    }
+    h1 {
+      font-size: 2.5rem;
+      color: #FF6F61;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+      margin: 0;
+    }
+    h2 {
+      font-size: 1.2rem;
+      color: #2E8B57;
+      margin: 0;
+    }
+    .menu {
+      width: 100%;
+      max-width: 800px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .drink {
+      background: linear-gradient(135deg, #FFE29F 0%, #FFA99F 100%);
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+      color: #2d2d2d;
+      width: calc(50% - 10px);
+      box-sizing: border-box;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeInUp 0.6s ease forwards;
+    }
+    .drink:nth-child(1) { animation-delay: 0s; }
+    .drink:nth-child(2) { animation-delay: 0.1s; }
+    .drink:nth-child(3) { animation-delay: 0.2s; }
+    .drink:nth-child(4) { animation-delay: 0.3s; }
+    .drink:nth-child(5) { animation-delay: 0.4s; }
+    .drink:nth-child(6) { animation-delay: 0.5s; }
 
-// user-frontend/src/App.js
-import React from 'react';
-import './App.css';
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <h1>Myrtle Beach Vacation</h1>
-        <p>Order your favorite beach cocktails via WhatsApp!</p>
-        {/* Your menu/UI components go here */}
-      </header>
+    .drink h3 {
+      margin: 0 0 10px;
+      color: #2d2d2d;
+      font-size: 1.2rem;
+    }
+    .drink p {
+      margin: 0 0 12px;
+      font-size: 1rem;
+      line-height: 1.4;
+    }
+    .order-btn {
+      background-color: #FF6F61;
+      color: white;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 10px;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 1rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      transition: background-color 0.3s ease;
+      display: inline-block;
+    }
+    .order-btn:hover {
+      background-color: #E65B50;
+    }
+    @media (max-width: 600px) {
+      .drink {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🌊 Myrtle Beach Vacation 🌊</h1>
+    <h2>Beachside Cocktail Menu 🍹</h2>
+  </header>
+  <section class="menu">
+
+    <div class="drink">
+      <h3>Tommy’s Glow 🌺</h3>
+      <p>A lighter take on the classic — tequila, fresh lime juice, and agave syrup for a naturally sweet and citrusy refreshment.</p>
+      <a class="order-btn" href="https://wa.me/19844809046?text=I%27d%20like%20to%20order%20the%20Tommy%E2%80%99s%20Glow%20!">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" style="height: 16px; vertical-align: middle; margin-right: 6px;">Order WhatsApp
+      </a>
     </div>
-  );
-}
 
-export default App;
+    <div class="drink">
+      <h3>Mint Condition Mojito 🌿</h3>
+      <p>Crisp mint leaves muddled with lime and sugar, topped with white rum and soda water for ultimate freshness.</p>
+      <a class="order-btn" href="https://wa.me/19844809046?text=I%27d%20like%20to%20order%20the%20Mint%20Condition%20Mojito%20!">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" style="height: 16px; vertical-align: middle; margin-right: 6px;">Order WhatsApp
+      </a>
+    </div>
 
-// user-frontend/src/index.js
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import './index.css';
-import App from './App';
+    <div class="drink">
+      <h3>Blue Breeze Mojito 💙</h3>
+      <p>A fruity twist on the original — blueberries, mint, lime, and rum combine into a refreshing and slightly sweet delight.</p>
+      <a class="order-btn" href="https://wa.me/19844809046?text=I%27d%20like%20to%20order%20the%20Blue%20Breeze%20Mojito%20!">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" style="height: 16px; vertical-align: middle; margin-right: 6px;">Order WhatsApp
+      </a>
+    </div>
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+    <div class="drink">
+      <h3>Paloma Paradise 🍊</h3>
+      <p>Tequila, grapefruit soda, and lime juice create this zesty, bubbly Mexican classic with a touch of sea salt.</p>
+      <a class="order-btn" href="https://wa.me/19844809046?text=I%27d%20like%20to%20order%20the%20Paloma%20Paradise%20!">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" style="height: 16px; vertical-align: middle; margin-right: 6px;">Order WhatsApp
+      </a>
+    </div>
 
-// user-frontend/package.json
-{
-  "name": "user-frontend",
-  "version": "1.0.0",
-  "private": true,
-  "dependencies": {
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0",
-    "react-scripts": "5.0.1"
-  },
-  "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
-  }
-}
+    <div class="drink">
+      <h3>Cosmo Crush 💋</h3>
+      <p>Elegant and tart — vodka, cranberry juice, orange liqueur, and fresh lime served in a chilled martini glass.</p>
+      <a class="order-btn" href="https://wa.me/19844809046?text=I%27d%20like%20to%20order%20the%20Cosmo%20Crush%20!">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" style="height: 16px; vertical-align: middle; margin-right: 6px;">Order WhatsApp
+      </a>
+    </div>
+
+    <div class="drink">
+      <h3>Espresso Chilltini ☕</h3>
+      <p>A creamy caffeine kick — vodka, espresso, and coffee liqueur shaken over ice and garnished with espresso beans.</p>
+      <a class="order-btn" href="https://wa.me/19844809046?text=I%27d%20like%20to%20order%20the%20Espresso%20Chilltini%20!">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" style="height: 16px; vertical-align: middle; margin-right: 6px;">Order WhatsApp
+      </a>
+    </div>
+
+  </section>
+</body>
+</html>
