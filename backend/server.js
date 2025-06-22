@@ -227,15 +227,18 @@ app.post('/done', verifyJWT, async (req, res) => {
  * ------------------------------------------------------------------*/
 app.get('/menu', async (req, res) => {
   try {
+    console.log('⚙️  /menu handler invoked');
     const { rows } = await pool.query(
       `SELECT id, canonical, display_name, stock_count
          FROM drinks
         ORDER BY display_name`
     );
+    console.log('✅ /menu query succeeded, rows:', rows);
     res.json(rows);
   } catch (err) {
     console.error('❌ /menu error:', err);
-    res.sendStatus(500);
+    // Send the error message back so we can see it in curl
+    res.status(500).send(err.message);
   }
 });
 
