@@ -129,55 +129,103 @@
   <section class="menu">
 
     <!-- Tommy’s Glow (in stock) -->
-    <div class="drink">
+    <div class="drink" data-canonical="Tommys Margarita">
       <h3>Tommy’s Glow 🌺</h3>
       <p>A lighter take on the classic — tequila, fresh lime juice, and agave syrup for a naturally sweet and citrusy refreshment.</p>
+      <p class="stock-info"></p>
       <a class="order-btn" href="https://wa.me/19844809046?text=I%27d%20like%20to%20order%20the%20Tommy%E2%80%99s%20Glow%20!">
         <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" style="height: 16px; vertical-align: middle; margin-right: 6px;">Order WhatsApp
       </a>
     </div>
 
     <!-- Mint Condition Mojito (out of stock) -->
-    <div class="drink">
+    <div class="drink" data-canonical="Regular Mojito">
       <div class="badge">Out of Stock</div>
       <h3>Mint Condition Mojito 🌿</h3>
       <p>Crisp mint leaves muddled with lime and sugar, topped with white rum and soda water for ultimate freshness.</p>
+      <p class="stock-info"></p>
       <a class="order-btn disabled">Out of Stock</a>
     </div>
 
     <!-- Blue Breeze Mojito (out of stock) -->
-    <div class="drink">
+    <div class="drink" data-canonical="Blueberry Mojito">
       <div class="badge">Out of Stock</div>
       <h3>Blue Breeze Mojito 💙</h3>
       <p>A fruity twist on the original — blueberries, mint, lime, and rum combine into a refreshing and slightly sweet delight.</p>
+      <p class="stock-info"></p>
       <a class="order-btn disabled">Out of Stock</a>
     </div>
 
     <!-- Paloma Paradise (out of stock) -->
-    <div class="drink">
+    <div class="drink" data-canonical="Paloma">
       <div class="badge">Out of Stock</div>
       <h3>Paloma Paradise 🍊</h3>
       <p>Tequila, grapefruit soda, and lime juice create this zesty, bubbly Mexican classic with a touch of sea salt.</p>
+      <p class="stock-info"></p>
       <a class="order-btn disabled">Out of Stock</a>
     </div>
 
     <!-- Cosmo Crush (out of stock) -->
-    <div class="drink">
+    <div class="drink" data-canonical="Cosmopolitan">
       <div class="badge">Out of Stock</div>
       <h3>Cosmo Crush 💋</h3>
       <p>Elegant and tart — vodka, cranberry juice, orange liqueur, and fresh lime served in a chilled martini glass.</p>
+      <p class="stock-info"></p>
       <a class="order-btn disabled">Out of Stock</a>
     </div>
 
     <!-- Espresso Chilltini (in stock) -->
-    <div class="drink">
+    <div class="drink" data-canonical="Espresso Martini">
       <h3>Espresso Chilltini ☕</h3>
       <p>A creamy caffeine kick — vodka, espresso, and coffee liqueur shaken over ice and garnished with espresso beans.</p>
+      <p class="stock-info"></p>
       <a class="order-btn" href="https://wa.me/19844809046?text=I%27d%20like%20to%20order%20the%20Espresso%20Chilltini%20!">
         <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" style="height: 16px; vertical-align: middle; margin-right: 6px;">Order WhatsApp
       </a>
     </div>
 
   </section>
+<script>
+(async () => {
+  try {
+    const res = await fetch('/menu');
+    const data = await res.json();
+    const menuMap = {};
+    data.forEach(item => { menuMap[item.canonical] = item.stock_count; });
+    document.querySelectorAll('.drink').forEach(drinkEl => {
+      const canonical = drinkEl.getAttribute('data-canonical');
+      const stock = menuMap[canonical] || 0;
+      const info = drinkEl.querySelector('.stock-info');
+      info.textContent = stock > 0 ? `${stock} left` : 'Out of stock';
+      let badgeEl = drinkEl.querySelector('.badge');
+      if (stock === 0) {
+        if (!badgeEl) {
+          badgeEl = document.createElement('div');
+          badgeEl.className = 'badge';
+          drinkEl.insertBefore(badgeEl, drinkEl.firstChild);
+        }
+        badgeEl.textContent = 'Out of Stock';
+        const btn = drinkEl.querySelector('.order-btn');
+        btn.classList.add('disabled');
+        btn.textContent = 'Out of Stock';
+        btn.removeAttribute('href');
+      } else if (stock <= 10) {
+        if (!badgeEl) {
+          badgeEl = document.createElement('div');
+          badgeEl.className = 'badge';
+          drinkEl.insertBefore(badgeEl, drinkEl.firstChild);
+        }
+        badgeEl.textContent = 'Low Stock';
+      } else {
+        if (badgeEl) badgeEl.remove();
+      }
+    });
+  } catch (err) {
+    console.error('Stock script error', err);
+  }
+})();
+</script>
 </body>
 </html>
+
+

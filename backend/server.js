@@ -181,9 +181,24 @@ app.post('/webhook', adminHandler, async (req, res) => {
     return res.sendStatus(200);
   }
   const canonical = mapping.canonical;
+  // ─── STOCK CHECK ──────────────────────────────────────
+  const stockRes = await pool.query(
+    'SELECT id, stock_count FROM drinks WHERE canonical = $1',
+    [canonical]
+  );
+  const drinkRecord = stockRes.rows[0] || {};
+  if ((drinkRecord.stock_count || 0) <= 0) {
+    await sendWhatsApp(from, `❌ Sorry, "${stripped}" is sold out.`);
+    return res.sendStatus(200);
+  }
   if (DEBUG) console.log(`✅ Parsed drink: display='${stripped}' → canonical='${canonical}'`);
 
   queue.push({ id: Date.now(), from, name: firstName, cocktail: canonical, displayName: stripped, createdAt: Date.now() });
+  // ─── STOCK DECREMENT ───────────────────────────────────
+  await pool.query(
+    'UPDATE drinks SET stock_count = GREATEST(stock_count - 1, 0) WHERE id = $1',
+    [drinkRecord.id]
+  );
   queue.sort((a, b) => a.createdAt - b.createdAt);
   console.log(`✅ New order from ${from}: ${stripped}`);
   await sendWhatsApp(from, `👨‍🍳 Hi ${firstName}, we received your order for "${stripped}". We're preparing it now!`);
@@ -205,6 +220,23 @@ app.post('/done', verifyJWT, async (req, res) => {
   const [order] = queue.splice(idx, 1);
   await sendWhatsApp(order.from, `🍸 Your "${order.displayName}" is ready!`);
   return res.send('Done');
+});
+
+/* ------------------------------------------------------------------
+ * Public menu endpoint
+ * ------------------------------------------------------------------*/
+app.get('/menu', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, canonical, display_name, stock_count
+         FROM drinks
+        ORDER BY display_name`
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('❌ /menu error:', err);
+    res.sendStatus(500);
+  }
 });
 
 /* ------------------------------------------------------------------

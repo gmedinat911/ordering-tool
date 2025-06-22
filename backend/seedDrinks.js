@@ -8,12 +8,13 @@ const FORCE = /^true$/i.test(process.env.FORCE_SEED || 'false');
 async function seedDrinks() {
   const client = await pool.connect();
   try {
-    // Step 1: Ensure the table exists
+    // Step 1: Ensure the table exists with stock_count
     await client.query(`
       CREATE TABLE IF NOT EXISTS drinks (
         id SERIAL PRIMARY KEY,
         canonical TEXT UNIQUE NOT NULL,
-        display_name TEXT NOT NULL
+        display_name TEXT NOT NULL,
+        stock_count INTEGER NOT NULL DEFAULT 20
       )
     `);
     console.log('✅ drinks table ensured.');
@@ -27,7 +28,7 @@ async function seedDrinks() {
       return;
     }
 
-    console.log(FORCE ? '⚠️  Force seeding enabled. Updating all entries.' : 'Seeding drinks...');
+    console.log(FORCE ? '⚠️  Force seeding enabled. Updating display names only.' : 'Seeding drinks...');
 
     let successCount = 0;
     let failCount = 0;
@@ -35,8 +36,8 @@ async function seedDrinks() {
     for (const { canonical, display } of Object.values(DRINK_MAP)) {
       try {
         await client.query(
-          `INSERT INTO drinks (canonical, display_name)
-           VALUES ($1, $2)
+          `INSERT INTO drinks (canonical, display_name, stock_count)
+           VALUES ($1, $2, 20)
            ON CONFLICT (canonical) DO UPDATE
              SET display_name = EXCLUDED.display_name`,
           [canonical, display]
