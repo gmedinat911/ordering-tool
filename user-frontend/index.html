@@ -188,7 +188,7 @@
 <script>
 (async () => {
   try {
-    const res = await fetch('/menu');
+    const res = await fetch('https://whatsapp-cocktail-bot.onrender.com/menu');
     const data = await res.json();
     const menuMap = {};
     data.forEach(item => { menuMap[item.canonical] = item.stock_count; });
