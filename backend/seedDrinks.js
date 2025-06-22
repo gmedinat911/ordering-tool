@@ -8,6 +8,11 @@ const FORCE = /^true$/i.test(process.env.FORCE_SEED || 'false');
 async function seedDrinks() {
   const client = await pool.connect();
   try {
+    // At the top of backend/seedDrinks.js, before CREATE TABLE IF NOT EXISTS…
+    await client.query(`
+      ALTER TABLE drinks
+        ADD COLUMN IF NOT EXISTS stock_count INTEGER NOT NULL DEFAULT 20;
+    `);
     // Step 1: Ensure the table exists with stock_count
     await client.query(`
       CREATE TABLE IF NOT EXISTS drinks (
