@@ -212,8 +212,9 @@
         badgeEl.textContent = 'Out of Stock';
         const btn = drinkEl.querySelector('.order-btn');
         btn.classList.add('disabled');
+        btn.textContent = '';                   // clear previous text
+        btn.removeAttribute('href');            // disable link
         btn.innerHTML = '<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/No_entry_sign.svg/1024px-No_entry_sign.svg.png" alt="Out of Stock" style="height:16px;vertical-align:middle;margin-right:6px;">Out of Stock';
-        btn.removeAttribute('href');
       } else if (stock <= 10) {
         if (!badgeEl) {
           badgeEl = document.createElement('div');
