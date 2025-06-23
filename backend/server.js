@@ -163,24 +163,29 @@ app.post('/webhook', adminHandler, async (req, res) => {
   const rawText = (message.text?.body || '').trim();
   if (DEBUG) console.log('📝 Incoming text:', rawText);
 
+  // 1) Strip prefix
   let stripped = rawText.replace(/^i['’]?d\s+like\s+to\s+order\s+the\s+/i, '').trim();
+  // 2) Normalize and clean input (remove apostrophes, emojis, punctuation)
   let cleaned = stripped.replace(/['’]/g, '').trim();
-  cleaned = cleaned.replace(/[!?.。，,]+$/g, '').trim();
-  if (DEBUG) console.log('🔍 Cleaned text:', cleaned);
+  cleaned = cleaned.replace(/[^\w\s]/g, '').trim();
 
-  if (cleaned.toLowerCase().includes('take a minute right now to send your first message')) {
-    if (DEBUG) console.log('ℹ️ Ignored tutorial message');
-    return res.sendStatus(200);
-  }
-
+  // 3) Map to canonical or display-name triggers
   const key = cleaned.toLowerCase();
-  const mapping = DRINK_MAP[key] || Object.values(DRINK_MAP).find(e => key.includes(e.canonical.toLowerCase()));
+  const mapping = DRINK_MAP[key]
+    || Object.values(DRINK_MAP).find(e =>
+         key.includes(e.canonical.toLowerCase())
+      || key.includes(e.display.toLowerCase())
+    );
   if (!mapping) {
     if (DEBUG) console.log(`❌ Invalid order from ${from}: "${cleaned}"`);
-    await sendWhatsApp(from, `❌ Invalid order \"${stripped}\". \n Please check the menu at: https://tinyurl.com/53bmccax `);
+    await sendWhatsApp(
+      from,
+      `❌ Invalid order "${stripped}". \n Please check the menu at: https://tinyurl.com/53bmccax`
+    );
     return res.sendStatus(200);
   }
   const canonical = mapping.canonical;
+  if (DEBUG) console.log(`✅ Parsed drink: display='${stripped}' → canonical='${canonical}'`);
   // ─── STOCK CHECK ──────────────────────────────────────
   const stockRes = await pool.query(
     'SELECT id, stock_count FROM drinks WHERE canonical = $1',
