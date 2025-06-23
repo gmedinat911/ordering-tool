@@ -213,7 +213,18 @@ app.post('/webhook', adminHandler, async (req, res) => {
 /* ------------------------------------------------------------------
  * Queue API (protected by JWT)
  * ------------------------------------------------------------------*/
-app.get('/queue', verifyJWT, (req, res) => res.json(queue));
+app.get('/queue', verifyJWT, (req, res) => {
+  // Return canonical names instead of user-typed fuzzy displayName
+  const normalizedQueue = queue.map(o => ({
+    id: o.id,
+    from: o.from,
+    name: o.name,
+    cocktail: o.cocktail,
+    displayName: o.cocktail,
+    createdAt: o.createdAt
+  }));
+  res.json(normalizedQueue);
+});
 app.post('/clear', verifyJWT, (req, res) => {
   queue = [];
   return res.send('Queue cleared');
