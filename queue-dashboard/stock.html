@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🍹 Stock Management</title>
+  <link
+    href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="bg-gray-100 text-gray-900">
+  <!-- Header -->
+  <div class="flex justify-between items-center px-4 py-3 border-b shadow-sm bg-white">
+    <h1 class="text-xl font-bold">📦 Stock Management</h1>
+    <div class="flex gap-2 items-center">
+      <button
+        id="backBtn"
+        class="bg-blue-500 hover:bg-blue-600 text-white text-sm px-3 py-1 rounded"
+      >
+        Dashboard
+      </button>
+      <button
+        id="logoutBtn"
+        class="bg-red-500 hover:bg-red-600 text-white text-sm px-3 py-1 rounded"
+      >
+        Logout
+      </button>
+    </div>
+  </div>
+
+  <!-- Stock Table -->
+  <div class="p-4 overflow-x-auto">
+    <table id="stockTable" class="min-w-full bg-white shadow rounded-lg">
+      <thead>
+        <tr class="bg-gray-200 text-gray-700">
+          <th class="px-4 py-2 text-left">Drink</th>
+          <th class="px-4 py-2 text-center">Stock</th>
+          <th class="px-4 py-2 text-center">Adjust</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script src="stock.js"></script>
+</body>
+</html>
