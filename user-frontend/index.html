@@ -114,6 +114,11 @@
       pointer-events: none;
     }
 
+    /* Hide the stock-info line */
+    .stock-info {
+      display: none;
+    }
+
     @media (max-width: 600px) {
       .drink {
         width: 100%;
@@ -218,6 +223,14 @@
         badgeEl.textContent = 'Low Stock';
       } else {
         if (badgeEl) badgeEl.remove();
+        // Restore order button for in-stock items
+        const btn = drinkEl.querySelector('.order-btn');
+        btn.classList.remove('disabled');
+        btn.textContent = 'Order WhatsApp';
+        const displayName = drinkEl.querySelector('h3').innerText.trim();
+        const waNumber = '19844809046'; // your WhatsApp number
+        const text = encodeURIComponent(`I'd like to order the ${displayName}!`);
+        btn.setAttribute('href', `https://wa.me/${waNumber}?text=${text}`);
       }
     });
   } catch (err) {
