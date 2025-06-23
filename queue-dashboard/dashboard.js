@@ -104,6 +104,9 @@ function logout() {
 }
 
 document.getElementById('clearBtn').addEventListener('click', clearQueue);
+document.getElementById('stockBtn').addEventListener('click', () => {
+  window.location.href = 'stock.html';
+});
 document.getElementById('refreshBtn').addEventListener('click', fetchQueue);
 document.getElementById('logoutBtn').addEventListener('click', logout);
 
