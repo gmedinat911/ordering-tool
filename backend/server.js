@@ -229,6 +229,7 @@ app.post('/clear', verifyJWT, (req, res) => {
   queue = [];
   return res.send('Queue cleared');
 });
+
 app.post('/done', verifyJWT, async (req, res) => {
   const { id } = req.body;
   const idx = queue.findIndex(o => o.id === id);
@@ -236,6 +237,36 @@ app.post('/done', verifyJWT, async (req, res) => {
   const [order] = queue.splice(idx, 1);
   await sendWhatsApp(order.from, `🍸 Your "${order.displayName}" is ready!`);
   return res.send('Done');
+});
+
+/* ------------------------------------------------------------------
+ * Admin: Adjust Stock
+ * ------------------------------------------------------------------*/
+app.post('/stock', verifyJWT, async (req, res) => {
+  const { id, delta, absolute } = req.body;
+  try {
+    if (absolute != null) {
+      await pool.query(
+        'UPDATE drinks SET stock_count = $1 WHERE id = $2',
+        [absolute, id]
+      );
+    } else if (delta != null) {
+      await pool.query(
+        'UPDATE drinks SET stock_count = GREATEST(stock_count + $1, 0) WHERE id = $2',
+        [delta, id]
+      );
+    } else {
+      return res.status(400).send('Provide either { absolute } or { delta }');
+    }
+    const { rows } = await pool.query(
+      'SELECT id, display_name, stock_count FROM drinks WHERE id = $1',
+      [id]
+    );
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('❌ /stock error:', err);
+    res.status(500).send('Stock update failed');
+  }
 });
 
 /* ------------------------------------------------------------------
