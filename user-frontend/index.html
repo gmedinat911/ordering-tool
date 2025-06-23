@@ -212,7 +212,7 @@
         badgeEl.textContent = 'Out of Stock';
         const btn = drinkEl.querySelector('.order-btn');
         btn.classList.add('disabled');
-        btn.textContent = 'Out of Stock';
+        btn.innerHTML = '<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/No_entry_sign.svg/1024px-No_entry_sign.svg.png" alt="Out of Stock" style="height:16px;vertical-align:middle;margin-right:6px;">Out of Stock';
         btn.removeAttribute('href');
       } else if (stock <= 10) {
         if (!badgeEl) {
@@ -226,7 +226,7 @@
         // Restore order button for in-stock items
         const btn = drinkEl.querySelector('.order-btn');
         btn.classList.remove('disabled');
-        btn.textContent = 'Order WhatsApp';
+        btn.innerHTML = '<img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" style="height:16px;vertical-align:middle;margin-right:6px;">Order WhatsApp';
         const displayName = drinkEl.querySelector('h3').innerText.trim();
         const waNumber = '19844809046'; // your WhatsApp number
         const text = encodeURIComponent(`I'd like to order the ${displayName}!`);
@@ -240,5 +240,3 @@
 </script>
 </body>
 </html>
-
-
