@@ -222,6 +222,14 @@
           drinkEl.insertBefore(badgeEl, drinkEl.firstChild);
         }
         badgeEl.textContent = 'Low Stock';
+        // Restore order button for low-stock items
+        const btn = drinkEl.querySelector('.order-btn');
+        btn.classList.remove('disabled');
+        btn.innerHTML = '<img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" style="height:16px;vertical-align:middle;margin-right:6px;">Order WhatsApp';
+        const displayName = drinkEl.querySelector('h3').innerText.trim();
+        const waNumber = '19844809046'; // your WhatsApp number
+        const text = encodeURIComponent(`I'd like to order the ${displayName}!`);
+        btn.setAttribute('href', `https://wa.me/${waNumber}?text=${text}`);
       } else {
         if (badgeEl) badgeEl.remove();
         // Restore order button for in-stock items
