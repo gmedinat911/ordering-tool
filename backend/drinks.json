@@ -1,8 +1,8 @@
 {
-  "tommys glow": { "canonical": "Tommys Margarita",    "display": "Tommy’s Glow" },
-  "mint condition mojito": { "canonical": "Regular Mojito", "display": "Mint Condition Mojito" },
-  "blue breeze mojito": { "canonical": "Blueberry Mojito", "display": "Blue Breeze Mojito" },
+  "kristin bday margarita": { "canonical": "Tommys Margarita",    "display": "Kristin Bday Margarita" },
+  "kristin condition mojito": { "canonical": "Regular Mojito", "display": " Kristin Mojito" },
+  "gin southside": { "canonical": "Gin Southside", "display": "Kristin Gin Southside" },
   "paloma paradise": { "canonical": "Paloma",            "display": "Paloma Paradise" },
   "cosmo crush": { "canonical": "Cosmopolitan",       "display": "Cosmo Crush" },
-  "espresso chilltini": { "canonical": "Espresso Martini", "display": "Espresso Chilltini" }
+  "espresso kristinni": { "canonical": "Espresso Martini", "display": "Espresso Kristinni" }
 }
