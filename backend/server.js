@@ -1,4 +1,3 @@
-// Minimal edit version of your original server.js, preserving line count and structure as much as possible
 require('dotenv').config();
 const path = require('path');
 const express = require('express');
@@ -9,6 +8,16 @@ const jwt = require('jsonwebtoken');
 
 // Load drink mapping from external JSON file
 const DRINK_MAP = require(path.join(__dirname, 'drinks.json'));
+const DRINK_MAP_PATH = path.join(__dirname, 'drinks.json');
+function readDrinkMap() {
+  try {
+    delete require.cache[require.resolve(DRINK_MAP_PATH)];
+    return require(DRINK_MAP_PATH);
+  } catch (e) {
+    if (DEBUG) console.log('⚠️ Failed to reload drinks.json, using cached map:', e.message);
+    return DRINK_MAP;
+  }
+}
 
 // PostgreSQL connection pool and seeder
 const seedDrinks = require('./seedDrinks');
@@ -170,9 +179,10 @@ app.post('/webhook', adminHandler, async (req, res) => {
   cleaned = cleaned.replace(/[^\w\s]/g, '').trim();
 
   // 3) Map to canonical or display-name triggers
+  const DM = readDrinkMap();
   const key = cleaned.toLowerCase();
-  const mapping = DRINK_MAP[key]
-    || Object.values(DRINK_MAP).find(e =>
+  const mapping = DM[key]
+    || Object.values(DM).find(e =>
          key.includes(e.canonical.toLowerCase())
       || key.includes(e.display.toLowerCase())
     );
@@ -266,6 +276,20 @@ app.post('/stock', verifyJWT, async (req, res) => {
   } catch (err) {
     console.error('❌ /stock error:', err);
     res.status(500).send('Stock update failed');
+  }
+});
+
+/* ------------------------------------------------------------------
+ * Admin: Reload Drinks Map
+ * ------------------------------------------------------------------*/
+app.post('/admin/reload-drinks', verifyJWT, (req, res) => {
+  try {
+    const dm = readDrinkMap();
+    const count = Object.keys(dm || {}).length;
+    return res.json({ ok: true, keys: count });
+  } catch (e) {
+    console.error('❌ /admin/reload-drinks error:', e);
+    return res.status(500).json({ ok: false });
   }
 });
 
