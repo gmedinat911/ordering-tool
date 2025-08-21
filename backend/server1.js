@@ -242,6 +242,7 @@ app.post('/done', verifyJWT, async (req, res) => {
 /* ------------------------------------------------------------------
  * Admin: Adjust Stock
  * ------------------------------------------------------------------*/
+
 app.post('/stock', verifyJWT, async (req, res) => {
   const { id, delta, absolute } = req.body;
   try {
@@ -268,7 +269,50 @@ app.post('/stock', verifyJWT, async (req, res) => {
     res.status(500).send('Stock update failed');
   }
 });
+/* ------------------------------------------------------------------
+ * Admin: Create Drink
+ * ------------------------------------------------------------------*/
 
+app.post('/drinks', verifyJWT, async (req, res) => {
+  const { canonical, display_name, stock_count } = req.body;
+  if (!canonical || !display_name || stock_count == null) {
+    return res.status(400).send('Missing required fields: canonical, display_name, stock_count');
+  }
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO drinks (canonical, display_name, stock_count)
+       VALUES ($1, $2, $3)
+       RETURNING id, canonical, display_name, stock_count`,
+      [canonical, display_name, stock_count]
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error('❌ /drinks POST error:', err);
+    res.status(500).send('Failed to create drink');
+  }
+});
+
+/* ------------------------------------------------------------------
+ * Admin: Delete Drink
+ * ------------------------------------------------------------------*/
+app.delete('/drinks/:id', verifyJWT, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { rowCount } = await pool.query(
+      'DELETE FROM drinks WHERE id = $1',
+      [id]
+    );
+    if (rowCount === 0) {
+      return res.status(404).send('Drink not found');
+    }
+    res.sendStatus(204);
+  } catch (err) {
+    console.error('❌ /drinks DELETE error:', err);
+    res.status(500).send('Failed to delete drink');
+  }
+});
+
+/* ------------------------------------------------------------------
 /* ------------------------------------------------------------------
  * Public menu endpoint
  * ------------------------------------------------------------------*/

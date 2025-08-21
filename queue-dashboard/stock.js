@@ -52,12 +52,6 @@ async function fetchStock() {
           >
             -1
           </button>
-                    <button 
-            data-id="${drink.id}" 
-            class="delete-btn bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-sm"
-          >
-            Delete
-          </button>
         </td>
       `;
       tbody.appendChild(tr);
@@ -93,21 +87,6 @@ async function fetchStock() {
         }
       });
     });
-
-    // Delete buttons
-    document.querySelectorAll('.delete-btn').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const id = +btn.getAttribute('data-id');
-        if (!confirm('Are you sure you want to delete this drink?')) return;
-        try {
-          await axios.delete(`${BACKEND_URL}/drinks/${id}`);
-          fetchStock();
-        } catch (err) {
-          console.error('Delete failed', err);
-          if (err.response?.status === 401) logout();
-        }
-      });
-    });
   } catch (err) {
     console.error('Failed to fetch stock', err);
     if (err.response?.status === 401) logout();
@@ -117,34 +96,6 @@ async function fetchStock() {
 document.getElementById('logoutBtn').addEventListener('click', logout);
 document.getElementById('backBtn').addEventListener('click', () => {
   window.location.href = 'dashboard.html';
-});
-
-// Add Drink button logic
-document.getElementById('addDrinkBtn').addEventListener('click', async () => {
-  const canonicalNameInput = document.getElementById('canonicalNameInput');
-  const displayNameInput = document.getElementById('displayNameInput');
-  const initialStockInput = document.getElementById('initialStockInput');
-
-  const canonical_name = canonicalNameInput.value.trim();
-  const display_name = displayNameInput.value.trim();
-  const initial_stock = parseInt(initialStockInput.value, 10);
-
-  if (!canonical_name || !display_name || isNaN(initial_stock) || initial_stock < 0) {
-    alert('Please enter valid canonical name, display name, and non-negative initial stock.');
-    return;
-  }
-
-  try {
-    await axios.post(`${BACKEND_URL}/drinks`, { canonical_name, display_name, initial_stock });
-    canonicalNameInput.value = '';
-    displayNameInput.value = '';
-    initialStockInput.value = '';
-    fetchStock();
-  } catch (err) {
-    console.error('Add drink failed', err);
-    if (err.response?.status === 401) logout();
-    else alert('Failed to add drink');
-  }
 });
 
 window.onload = () => {
