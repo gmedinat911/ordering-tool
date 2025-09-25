@@ -227,12 +227,25 @@ const ADMIN_NUMBERS = (process.env.ADMIN_NUMBERS || '')
   .map(n => toE164(n))
   .filter(Boolean);
 
-const sendWhatsApp = (to, text) =>
-  axios.post(
-    `https://graph.facebook.com/v19.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
-    { messaging_product: 'whatsapp', to: toE164(to), text: { body: text } },
-    { headers: { Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}` } }
-  );
+async function sendWhatsApp(to, text) {
+  const token = process.env.WHATSAPP_TOKEN;
+  const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  if (!token || !phoneId) {
+    console.error('❌ Missing WhatsApp credentials. Set WHATSAPP_TOKEN and WHATSAPP_PHONE_NUMBER_ID in your environment.');
+    return;
+  }
+  try {
+    await axios.post(
+      `https://graph.facebook.com/v19.0/${phoneId}/messages`,
+      { messaging_product: 'whatsapp', to: toE164(to), text: { body: text } },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+  } catch (e) {
+    const status = e?.response?.status;
+    const data = e?.response?.data;
+    console.error('❌ WhatsApp send error:', status || '', data || e.message);
+  }
+}
 
 /* ------------------------------------------------------------------
  * Admin middleware (WhatsApp commands)
