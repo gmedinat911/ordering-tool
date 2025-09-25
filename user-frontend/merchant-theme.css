@@ -1,0 +1,76 @@
+/* Merchant-inspired theme (no proprietary assets) */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@400;600;700&display=swap');
+
+:root{
+  --bg:#0f1115;          /* deep charcoal */
+  --surface:#171a20;     /* dark surface */
+  --cream:#f5efe6;       /* light text */
+  --muted:#b7b3ac;       /* muted text */
+  --gold:#c8a96a;        /* accent */
+  --gold-2:#b8903f;
+  --divider:#2a2f3a;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--cream)}
+body{font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; line-height:1.5}
+
+/* Top navigation */
+.nav{
+  position:sticky; top:0; z-index:50; backdrop-filter: blur(8px);
+  background: linear-gradient(180deg, rgba(15,17,21,.85), rgba(15,17,21,.5) 60%, transparent);
+  border-bottom:1px solid var(--divider);
+}
+.nav-inner{max-width:1100px; margin:0 auto; padding:14px 20px; display:flex; align-items:center; justify-content:space-between}
+.brand{display:flex; align-items:center; gap:12px}
+.brand-mark{width:36px; height:36px; border-radius:50%; background:radial-gradient(circle at 30% 30%, #fff2, transparent 60%), var(--gold)}
+.brand-name{font-family:'Playfair Display', serif; font-weight:700; letter-spacing:.5px}
+.menu-links a{color:var(--cream); text-decoration:none; margin-left:18px; opacity:.9}
+.menu-links a:hover{opacity:1}
+
+/* Hero */
+.hero{position:relative; overflow:hidden;}
+.hero .inner{max-width:1100px; margin:0 auto; padding:80px 20px; display:grid; grid-template-columns: 1.1fr .9fr; gap:28px; align-items:center}
+.hero h1{font-family:'Playfair Display', serif; font-size:52px; line-height:1.05; margin:0 0 10px}
+.hero p{color:var(--muted); margin:0 0 18px}
+.cta-row{display:flex; gap:12px; flex-wrap:wrap}
+.btn{appearance:none; border:0; outline:0; cursor:pointer; text-decoration:none; padding:12px 18px; border-radius:999px; font-weight:700}
+.btn-primary{background:var(--gold); color:#111}
+.btn-primary:hover{background:var(--gold-2)}
+.btn-ghost{background:transparent; border:1px solid var(--divider); color:var(--cream)}
+.btn-ghost:hover{border-color:var(--gold)}
+
+.hero-visual{border-radius:16px; overflow:hidden; box-shadow:0 30px 60px rgba(0,0,0,.45); border:1px solid #ffffff14}
+.hero-visual img{display:block; width:100%; height:auto}
+
+/* Sections */
+.section{max-width:1100px; margin:0 auto; padding:50px 20px; border-top:1px solid var(--divider)}
+.section h2{font-family:'Playfair Display', serif; font-size:28px; margin:0 0 12px}
+.section p{color:var(--muted); margin:0}
+
+/* Menu grid/cards */
+.menu-grid{max-width:1100px; margin:30px auto; padding:0 20px; display:grid; gap:18px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));}
+.card{position:relative; background:var(--surface); border:1px solid var(--divider); border-radius:16px; padding:16px; box-shadow: 0 10px 30px rgba(0,0,0,.28)}
+.card h3{font-family:'Playfair Display', serif; margin:0 0 8px}
+.card p{color:var(--muted); margin:0 0 12px}
+.card .img-wrap{border-radius:12px; overflow:hidden; aspect-ratio: 4/3; margin-bottom:10px; background:#000}
+.card .img-wrap img{width:100%; height:100%; object-fit:cover; display:block; opacity:.95}
+
+/* Footer */
+.footer{border-top:1px solid var(--divider);}
+.footer-inner{max-width:1100px; margin:0 auto; padding:26px 20px; color:var(--muted)}
+
+/* Buttons inside cards */
+.order-btn{background:var(--gold); color:#111; padding:10px 14px; border-radius:999px; font-weight:800; text-decoration:none; display:inline-flex; align-items:center; gap:8px; box-shadow: 0 10px 24px rgba(200,169,106,.25)}
+.order-btn.disabled{background:#444; color:#888; box-shadow:none; cursor:not-allowed}
+.order-btn + .order-btn{margin-left:8px}
+
+.badge{position:absolute; top:12px; right:12px; background:#8b1d1d; color:#fff; font-weight:700; padding:6px 10px; border-radius:999px; font-size:.8rem}
+.badge.low{background:#7a5a20}
+
+/* Optional small kicker text (header note) */
+.kicker{color:var(--muted); font-weight:600}
+
+/* Utilities */
+.center{max-width:1100px; margin:0 auto; padding:0 20px}
+.muted{color:var(--muted)}

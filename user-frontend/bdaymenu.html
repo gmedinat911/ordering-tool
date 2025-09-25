@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>🎉 Birthday Drinks Menu 🎉</title>
+  <link rel="stylesheet" href="./merchant-theme.css" />
   <style>
     :root {
       --accent:   #7b5cff;
@@ -141,6 +142,11 @@
       height: 16px;
     }
 
+    /* Put a little space between adjacent order buttons */
+    .order-btn + .order-btn {
+      margin-left: 8px;
+    }
+
     .order-btn.disabled {
       background-color: #ccc;
       cursor: not-allowed;
@@ -149,6 +155,29 @@
     }
 
     .stock-info { display: none; }
+
+    /* Toast notifications */
+    .toast-container {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: center;
+    }
+    .toast {
+      background: #111827;
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 10px;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.25);
+      font-weight: 600;
+      opacity: 0.95;
+      max-width: 90vw;
+    }
 
     @media (max-width: 600px) {
       .drink { width: 100%; }
@@ -203,65 +232,91 @@
     <h2>Birthday Drinks Menu 🍹</h2>
   </header>
 
-  <section class="menu">
+  <section class="menu-grid">
 
     <!-- Kristin Bday Margarita -->
-    <div class="drink" data-canonical="Tommys Margarita">
+    <div class="card drink" data-canonical="Tommys Margarita">
+      <div class="img-wrap">
+        <img src="https://images.unsplash.com/photo-1604908554007-9f4a74e6a1b0?q=80&w=1200&auto=format&fit=crop" alt="Margarita"/>
+      </div>
       <h3>Kristin Bday Margarita 🌺</h3>
       <p>A lighter take on the classic — tequila, fresh lime juice, and agave syrup for a naturally sweet and citrusy refreshment.</p>
       <p class="stock-info"></p>
-      <a class="order-btn" href="https://wa.me/19844809046?text=I%27d%20like%20to%20order%20the%20Kristin%20Bday%20Margarita%20!">
+      <a class="order-btn whatsapp-btn" href="https://wa.me/19844809046?text=I%27d%20like%20to%20order%20the%20Kristin%20Bday%20Margarita%20!">
         <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp">Order WhatsApp
       </a>
+      <a class="order-btn order-now" href="#">🛒 Order Now</a>
     </div>
 
     <!-- Kristin Mojito -->
-    <div class="drink" data-canonical="Regular Mojito">
+    <div class="card drink" data-canonical="Regular Mojito">
+      <div class="img-wrap">
+        <img src="https://images.unsplash.com/photo-1604908812105-1c917f651350?q=80&w=1200&auto=format&fit=crop" alt="Mojito"/>
+      </div>
       <div class="badge">Out of Stock</div>
       <h3>Kristin Mojito 🌿</h3>
       <p>Crisp mint leaves muddled with lime and sugar, topped with white rum and soda water for ultimate freshness.</p>
       <p class="stock-info"></p>
-      <a class="order-btn disabled"></a>
+      <a class="order-btn whatsapp-btn disabled"></a>
+      <a class="order-btn order-now disabled"></a>
     </div>
 
     <!-- Kristin Gin Southside -->
-    <div class="drink" data-canonical="Gin Southside">
+    <div class="card drink" data-canonical="Gin Southside">
+      <div class="img-wrap">
+        <img src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=1200&auto=format&fit=crop" alt="Gin Southside"/>
+      </div>
       <div class="badge">Out of Stock</div>
       <h3>Kristin Gin Southside 🍸</h3>
       <p>A refreshing blend of gin, mint, lime, and simple syrup — Kristin’s twist on the Southside classic.</p>
       <p class="stock-info"></p>
-      <a class="order-btn disabled"></a>
+      <a class="order-btn whatsapp-btn disabled"></a>
+      <a class="order-btn order-now disabled"></a>
     </div>
 
     <!-- Paloma Paradise -->
-    <div class="drink" data-canonical="Paloma">
+    <div class="card drink" data-canonical="Paloma">
+      <div class="img-wrap">
+        <img src="https://images.unsplash.com/photo-1527960471264-932f39eb5840?q=80&w=1200&auto=format&fit=crop" alt="Paloma"/>
+      </div>
       <div class="badge">Out of Stock</div>
       <h3>Paloma Paradise 🍊</h3>
       <p>Tequila, grapefruit soda, and lime juice create this zesty, bubbly Mexican classic with a touch of sea salt.</p>
       <p class="stock-info"></p>
-      <a class="order-btn disabled"></a>
+      <a class="order-btn whatsapp-btn disabled"></a>
+      <a class="order-btn order-now disabled"></a>
     </div>
 
     <!-- Cosmo Crush -->
-    <div class="drink" data-canonical="Cosmopolitan">
+    <div class="card drink" data-canonical="Cosmopolitan">
+      <div class="img-wrap">
+        <img src="https://images.unsplash.com/photo-1541976076758-347942db1970?q=80&w=1200&auto=format&fit=crop" alt="Cosmopolitan"/>
+      </div>
       <div class="badge">Out of Stock</div>
       <h3>Cosmo Crush 💋</h3>
       <p>Elegant and tart — vodka, cranberry juice, orange liqueur, and fresh lime served in a chilled martini glass.</p>
       <p class="stock-info"></p>
-      <a class="order-btn disabled"></a>
+      <a class="order-btn whatsapp-btn disabled"></a>
+      <a class="order-btn order-now disabled"></a>
     </div>
 
     <!-- Espresso Kristinni -->
-    <div class="drink" data-canonical="Espresso Martini">
+    <div class="card drink" data-canonical="Espresso Martini">
+      <div class="img-wrap">
+        <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=1200&auto=format&fit=crop" alt="Espresso Martini"/>
+      </div>
       <h3>Espresso Kristinni ☕</h3>
       <p>A creamy caffeine kick — vodka, espresso, and coffee liqueur shaken over ice and garnished with espresso beans.</p>
       <p class="stock-info"></p>
-      <a class="order-btn" href="https://wa.me/19844809046?text=I%27d%20like%20to%20order%20the%20Espresso%20Kristinni%20!">
+      <a class="order-btn whatsapp-btn" href="https://wa.me/19844809046?text=I%27d%20like%20to%20order%20the%20Espresso%20Kristinni%20!">
         <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp">Order WhatsApp
       </a>
+      <a class="order-btn order-now" href="#">🛒 Order Now</a>
     </div>
 
   </section>
+
+  <div id="toasts" class="toast-container" aria-live="polite" aria-atomic="true"></div>
 
   <div class="balloon b1"></div>
   <div class="balloon b2"></div>
@@ -312,10 +367,108 @@
 
   (async () => {
     try {
-      const res = await fetch('https://whatsapp-cocktail-bot.onrender.com/menu');
+      const API_BASE = 'https://whatsapp-cocktail-bot.onrender.com';
+      const res = await fetch(`${API_BASE}/menu`);
       const data = await res.json();
       const menuMap = {};
       data.forEach(item => { menuMap[item.canonical] = item.stock_count; });
+
+      // Contact configuration
+      const waNumber = '19844809046';
+      const ORDER_URL = `${API_BASE}/order`;
+      // Track pending orders by id so we can notify on completion
+      const pendingOrders = new Set();
+      // Connect to SSE for order events
+      try {
+        const es = new EventSource(`${API_BASE}/events`);
+        es.addEventListener('order_done', (evt) => {
+          try {
+            const payload = JSON.parse(evt.data || '{}');
+            if (payload && payload.id && pendingOrders.has(payload.id)) {
+              pendingOrders.delete(payload.id);
+              if ('Notification' in window && Notification.permission === 'granted') {
+                try { new Notification('Your drink is ready! 🎉', { body: `${payload.displayName || payload.cocktail} is ready for pickup.` }); }
+                catch { showToast(`${payload.displayName || payload.cocktail} is ready!`); }
+              } else {
+                showToast(`${payload.displayName || payload.cocktail} is ready!`);
+              }
+            }
+          } catch (e) { console.error('SSE parse error', e); }
+        });
+      } catch (e) {
+        console.warn('SSE not available', e);
+      }
+
+      async function placeOrder(drinkEl, canonical, displayName) {
+        const btnWA = drinkEl.querySelector('.order-btn.whatsapp-btn');
+        const btnON = drinkEl.querySelector('.order-btn.order-now');
+        const info = drinkEl.querySelector('.stock-info');
+        const origONText = btnON ? btnON.textContent : '';
+        try {
+          [btnWA, btnON].forEach(btn => { if (btn) { btn.classList.add('disabled'); } });
+          if (btnON) btnON.textContent = '⏳ Placing...';
+          // Ensure browser permission and push subscription
+          if ('Notification' in window && Notification.permission === 'default') {
+            try { await Notification.requestPermission(); } catch {}
+          }
+          await ensurePushSubscription();
+          const resp = await fetch(ORDER_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ canonical, drink: displayName, clientId })
+          });
+          if (resp.ok) {
+            // Parse id and ask for notification permission
+            let result = {};
+            try { result = await resp.json(); } catch {}
+            if (result && result.id) {
+              pendingOrders.add(result.id);
+            }
+            // Immediate confirmation toast
+            showToast('We received your order. It\'s being prepared!');
+            // Decrement locally
+            const match = /^(\d+)/.exec(info.textContent || '');
+            let left = match ? parseInt(match[1], 10) : 0;
+            if (left > 0) left -= 1;
+            info.textContent = left > 0 ? `${left} left` : 'Out of stock';
+            // Update UI if sold out now
+            if (left === 0) {
+              let badgeEl = drinkEl.querySelector('.badge');
+              if (!badgeEl) { badgeEl = document.createElement('div'); badgeEl.className = 'badge'; drinkEl.insertBefore(badgeEl, drinkEl.firstChild); }
+              badgeEl.textContent = 'Out of Stock';
+              [btnWA, btnON].forEach(btn => {
+                if (!btn) return;
+                btn.classList.add('disabled');
+                btn.removeAttribute('href');
+                btn.innerHTML = '<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/No_entry_sign.svg/1024px-No_entry_sign.svg.png" alt="Out of Stock" style="height:16px;vertical-align:middle;margin-right:6px;">';
+              });
+            } else {
+              if (btnON) btnON.textContent = '✅ Added to Queue';
+              setTimeout(() => { if (btnON) btnON.textContent = origONText || '🛒 Order Now'; }, 1500);
+              [btnWA, btnON].forEach(btn => { if (btn) { btn.classList.remove('disabled'); } });
+            }
+          } else if (resp.status === 409) {
+            // Out of stock per server
+            info.textContent = 'Out of stock';
+            let badgeEl = drinkEl.querySelector('.badge');
+            if (!badgeEl) { badgeEl = document.createElement('div'); badgeEl.className = 'badge'; drinkEl.insertBefore(badgeEl, drinkEl.firstChild); }
+            badgeEl.textContent = 'Out of Stock';
+          } else {
+            console.error('Order failed', await resp.text());
+            if (btnON) btnON.textContent = '❌ Try Again'; showToast('Order failed. Please try again.');
+            setTimeout(() => { if (btnON) btnON.textContent = origONText || '🛒 Order Now'; }, 2000);
+          }
+        } catch (e) {
+          console.error('Order error', e);
+          if (btnON) btnON.textContent = '❌ Error'; showToast('An error occurred. Please try again.');
+          setTimeout(() => { if (btnON) btnON.textContent = origONText || '🛒 Order Now'; }, 2000);
+        } finally {
+          // If still in stock, re-enable buttons
+          if (!/Out of stock/i.test(info.textContent)) {
+            [btnWA, btnON].forEach(btn => { if (btn) { btn.classList.remove('disabled'); } });
+          }
+        }
+      }
 
       document.querySelectorAll('.drink').forEach(drinkEl => {
         const canonical = drinkEl.getAttribute('data-canonical');
@@ -324,6 +477,11 @@
         info.textContent = stock > 0 ? `${stock} left` : 'Out of stock';
 
         let badgeEl = drinkEl.querySelector('.badge');
+        const btnWA = drinkEl.querySelector('.order-btn.whatsapp-btn');
+        const btnON = drinkEl.querySelector('.order-btn.order-now');
+        const displayName = drinkEl.querySelector('h3').innerText.trim();
+        const text = encodeURIComponent(`I'd like to order the ${displayName}!`);
+
         if (stock === 0) {
           if (!badgeEl) {
             badgeEl = document.createElement('div');
@@ -331,11 +489,13 @@
             drinkEl.insertBefore(badgeEl, drinkEl.firstChild);
           }
           badgeEl.textContent = 'Out of Stock';
-          const btn = drinkEl.querySelector('.order-btn');
-          btn.classList.add('disabled');
-          btn.textContent = '';
-          btn.removeAttribute('href');
-          btn.innerHTML = '<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/No_entry_sign.svg/1024px-No_entry_sign.svg.png" alt="Out of Stock" style="height:16px;vertical-align:middle;margin-right:6px;">';
+          // Disable both buttons
+          [btnWA, btnON].forEach(btn => {
+            if (!btn) return;
+            btn.classList.add('disabled');
+            btn.removeAttribute('href');
+            btn.innerHTML = '<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/No_entry_sign.svg/1024px-No_entry_sign.svg.png" alt="Out of Stock" style="height:16px;vertical-align:middle;margin-right:6px;">';
+          });
         } else if (stock <= 10) {
           if (!badgeEl) {
             badgeEl = document.createElement('div');
@@ -343,22 +503,28 @@
             drinkEl.insertBefore(badgeEl, drinkEl.firstChild);
           }
           badgeEl.textContent = 'Low Stock';
-          const btn = drinkEl.querySelector('.order-btn');
-          btn.classList.remove('disabled');
-          btn.innerHTML = '<img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" style="height:16px;vertical-align:middle;margin-right:6px;">Order WhatsApp';
-          const displayName = drinkEl.querySelector('h3').innerText.trim();
-          const waNumber = '19844809046';
-          const text = encodeURIComponent(`I'd like to order the ${displayName}!`);
-          btn.setAttribute('href', `https://wa.me/${waNumber}?text=${text}`);
+          if (btnWA) {
+            btnWA.classList.remove('disabled');
+            btnWA.innerHTML = '<img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" style="height:16px;vertical-align:middle;margin-right:6px;">Order WhatsApp';
+            btnWA.setAttribute('href', `https://wa.me/${waNumber}?text=${text}`);
+          }
+          if (btnON) {
+            btnON.classList.remove('disabled');
+            btnON.textContent = '🛒 Order Now';
+            btnON.addEventListener('click', (e) => { e.preventDefault(); placeOrder(drinkEl, canonical, displayName); });
+          }
         } else {
           if (badgeEl) badgeEl.remove();
-          const btn = drinkEl.querySelector('.order-btn');
-          btn.classList.remove('disabled');
-          btn.innerHTML = '<img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" style="height:16px;vertical-align:middle;margin-right:6px;">Order WhatsApp';
-          const displayName = drinkEl.querySelector('h3').innerText.trim();
-          const waNumber = '19844809046';
-          const text = encodeURIComponent(`I'd like to order the ${displayName}!`);
-          btn.setAttribute('href', `https://wa.me/${waNumber}?text=${text}`);
+          if (btnWA) {
+            btnWA.classList.remove('disabled');
+            btnWA.innerHTML = '<img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" style="height:16px;vertical-align:middle;margin-right:6px;">Order WhatsApp';
+            btnWA.setAttribute('href', `https://wa.me/${waNumber}?text=${text}`);
+          }
+          if (btnON) {
+            btnON.classList.remove('disabled');
+            btnON.textContent = '🛒 Order Now';
+            btnON.addEventListener('click', (e) => { e.preventDefault(); placeOrder(drinkEl, canonical, displayName); });
+          }
         }
       });
     } catch (err) {

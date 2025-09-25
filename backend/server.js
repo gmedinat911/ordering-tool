@@ -31,12 +31,72 @@ const DEBUG = /^true$/i.test(process.env.DEBUG || 'true');
  * In-memory state
  * ------------------------------------------------------------------*/
 let queue = [];
+// Simple in-memory SSE clients
+const sseClients = new Set();
+function broadcast(event, payload) {
+  const msg = `event: ${event}\n` + `data: ${JSON.stringify(payload)}\n\n`;
+  for (const res of sseClients) {
+    try { res.write(msg); } catch (_) {}
+  }
+}
 
 /* ------------------------------------------------------------------
  * Express setup
  * ------------------------------------------------------------------*/
 app.use(cors());
 app.use(bodyParser.json());
+
+// SSE endpoint for browser notifications
+app.get('/events', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders && res.flushHeaders();
+  res.write(`event: hello\n` + `data: {"ok":true}\n\n`);
+  sseClients.add(res);
+  req.on('close', () => { sseClients.delete(res); });
+});
+
+/* ------------------------------------------------------------------
+ * Web Push setup and subscription store
+ * ------------------------------------------------------------------*/
+const webPush = require('web-push');
+let VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
+let VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
+if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+  const { publicKey, privateKey } = webPush.generateVAPIDKeys();
+  VAPID_PUBLIC_KEY = publicKey;
+  VAPID_PRIVATE_KEY = privateKey;
+  console.log('⚠️ Generated ephemeral VAPID keys. Set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY in env to persist.');
+  console.log('VAPID_PUBLIC_KEY:', VAPID_PUBLIC_KEY);
+}
+webPush.setVapidDetails(`mailto:${process.env.CONTACT_EMAIL || 'admin@example.com'}`,
+  VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+const subscriptions = new Map(); // clientId -> subscription
+
+app.get('/vapidPublicKey', (req, res) => {
+  res.json({ key: VAPID_PUBLIC_KEY });
+});
+
+app.post('/subscribe', (req, res) => {
+  try {
+    const { subscription, clientId } = req.body || {};
+    const id = clientId || String(Date.now()) + Math.random().toString(36).slice(2);
+    if (!subscription || !subscription.endpoint) return res.status(400).json({ ok: false });
+    subscriptions.set(id, subscription);
+    return res.json({ ok: true, clientId: id });
+  } catch (e) {
+    console.error('❌ /subscribe error:', e);
+    return res.status(500).json({ ok: false });
+  }
+});
+
+async function sendPushToClient(clientId, payload) {
+  const sub = subscriptions.get(clientId);
+  if (!sub) return;
+  try { await webPush.sendNotification(sub, JSON.stringify(payload)); }
+  catch (e) { console.error('❌ web-push error:', e.statusCode, e.body || e.message); }
+}
 
 /* ------------------------------------------------------------------
  * Auth helpers
@@ -217,6 +277,14 @@ app.post('/webhook', adminHandler, async (req, res) => {
   queue.sort((a, b) => a.createdAt - b.createdAt);
   console.log(`✅ New order from ${from}: ${stripped}`);
   await sendWhatsApp(from, `👨‍🍳 Hi ${firstName}, we received your order for "${stripped}". We're preparing it now!`);
+  // Broadcast to SSE listeners and notify admins
+  try {
+    broadcast('order_new', { id: queue[queue.length-1]?.id, cocktail: canonical, displayName: stripped, source: 'whatsapp' });
+    if (ADMIN_NUMBERS.length) {
+      const adminMsg = `🆕 New WhatsApp order: ${stripped} (${canonical})`;
+      await Promise.allSettled(ADMIN_NUMBERS.map(n => sendWhatsApp(n, adminMsg)));
+    }
+  } catch (e) { if (DEBUG) console.log('SSE/admin notify error:', e.message); }
   return res.sendStatus(200);
 });
 
@@ -246,6 +314,10 @@ app.post('/done', verifyJWT, async (req, res) => {
   if (idx === -1) return res.status(404).send('Order not found');
   const [order] = queue.splice(idx, 1);
   await sendWhatsApp(order.from, `🍸 Your "${order.displayName}" is ready!`);
+  // Broadcast completion event
+  try { broadcast('order_done', { id: order.id, cocktail: order.cocktail, displayName: order.displayName }); } catch {}
+  // Send push to the originating client if available
+  try { if (order.clientId) { await sendPushToClient(order.clientId, { type: 'order_done', id: order.id, cocktail: order.cocktail, displayName: order.displayName }); } } catch {}
   return res.send('Done');
 });
 
@@ -310,6 +382,80 @@ app.get('/menu', async (req, res) => {
     console.error('❌ /menu error:', err);
     // Send the error message back so we can see it in curl
     res.status(500).send(err.message);
+  }
+});
+
+/* ------------------------------------------------------------------
+ * Public direct order endpoint (no WhatsApp/SMS)
+ * ------------------------------------------------------------------*/
+app.post('/order', async (req, res) => {
+  try {
+    const { drink, canonical, name, clientId } = req.body || {};
+    const DM = readDrinkMap();
+
+    let targetCanonical = canonical;
+    let displayName = drink;
+
+    if (!targetCanonical) {
+      const cleaned = (drink || '')
+        .replace(/['’]/g, '')
+        .replace(/[^\w\s]/g, '')
+        .trim()
+        .toLowerCase();
+      const mapping = DM[cleaned] || Object.values(DM).find(e =>
+        cleaned.includes(e.canonical.toLowerCase()) ||
+        cleaned.includes(e.display.toLowerCase())
+      );
+      if (!mapping) {
+        return res.status(400).json({ ok: false, error: 'Invalid drink' });
+      }
+      targetCanonical = mapping.canonical;
+      displayName = mapping.display || targetCanonical;
+    } else {
+      const mapping = Object.values(DM).find(e => e.canonical === targetCanonical) || DM[targetCanonical.toLowerCase()];
+      displayName = mapping?.display || targetCanonical;
+    }
+
+    // Stock check
+    const stockRes = await pool.query(
+      'SELECT id, stock_count FROM drinks WHERE canonical = $1',
+      [targetCanonical]
+    );
+    const drinkRecord = stockRes.rows[0] || {};
+    if ((drinkRecord.stock_count || 0) <= 0) {
+      return res.status(409).json({ ok: false, error: 'Out of stock' });
+    }
+
+    // Enqueue and decrement stock
+    const order = {
+      id: Date.now(),
+      from: 'web',
+      name: name || 'Web',
+      cocktail: targetCanonical,
+      displayName,
+      createdAt: Date.now(),
+      clientId: clientId || null
+    };
+    queue.push(order);
+    await pool.query(
+      'UPDATE drinks SET stock_count = GREATEST(stock_count - 1, 0) WHERE id = $1',
+      [drinkRecord.id]
+    );
+    queue.sort((a, b) => a.createdAt - b.createdAt);
+    console.log(`✅ New web order: ${displayName} (${targetCanonical}) by ${order.name}`);
+    // Notify admins about new web order
+    try {
+      if (ADMIN_NUMBERS.length) {
+        const adminMsg = `🆕 New Web order: ${displayName} (${targetCanonical}) by ${order.name}`;
+        await Promise.allSettled(ADMIN_NUMBERS.map(n => sendWhatsApp(n, adminMsg)));
+      }
+    } catch (e) { if (DEBUG) console.log('Admin notify error:', e.message); }
+    // Broadcast SSE event
+    try { broadcast('order_new', { id: order.id, cocktail: order.cocktail, displayName: order.displayName, source: 'web' }); } catch {}
+    return res.json({ ok: true, id: order.id });
+  } catch (err) {
+    console.error('❌ /order error:', err);
+    return res.status(500).json({ ok: false, error: 'Internal error' });
   }
 });
 

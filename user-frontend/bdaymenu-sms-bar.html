@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bar Menu — SMS Orders</title>
+  <link rel="stylesheet" href="./bar-theme.css" />
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="brand">
+        <div class="logo"></div>
+        <div>
+          <div class="title">The Evening Bar</div>
+          <div class="subtitle">Signature Cocktails</div>
+        </div>
+      </div>
+      <div class="kicker">SMS Ordering</div>
+    </header>
+
+    <section class="menu-grid">
+      <!-- Kristin Bday Margarita -->
+      <article class="card drink" data-canonical="Tommys Margarita">
+        <h3>Kristin Bday Margarita</h3>
+        <p>Tequila, fresh lime, and agave. Bright, clean, and perfectly balanced.</p>
+        <p class="stock-info"></p>
+        <a class="btn gold order-btn" href="#">📩 Text to Order</a>
+      </article>
+
+      <!-- Kristin Mojito -->
+      <article class="card drink" data-canonical="Regular Mojito">
+        <div class="badge">Out of Stock</div>
+        <h3>Kristin Mojito</h3>
+        <p>Fresh mint, lime, cane sugar, white rum, and a crisp soda lift.</p>
+        <p class="stock-info"></p>
+        <a class="btn order-btn disabled">Text to Order</a>
+      </article>
+
+      <!-- Kristin Gin Southside -->
+      <article class="card drink" data-canonical="Gin Southside">
+        <div class="badge">Out of Stock</div>
+        <h3>Kristin Gin Southside</h3>
+        <p>Gin, mint, and lime with chilled clarity. A timeless classic.</p>
+        <p class="stock-info"></p>
+        <a class="btn order-btn disabled">Text to Order</a>
+      </article>
+
+      <!-- Paloma Paradise -->
+      <article class="card drink" data-canonical="Paloma">
+        <div class="badge">Out of Stock</div>
+        <h3>Paloma Paradise</h3>
+        <p>Tequila and grapefruit with a touch of sea salt for a zesty finish.</p>
+        <p class="stock-info"></p>
+        <a class="btn order-btn disabled">Text to Order</a>
+      </article>
+
+      <!-- Cosmo Crush -->
+      <article class="card drink" data-canonical="Cosmopolitan">
+        <div class="badge">Out of Stock</div>
+        <h3>Cosmo Crush</h3>
+        <p>Vodka, cranberry, orange liqueur, and fresh lime — chilled to perfection.</p>
+        <p class="stock-info"></p>
+        <a class="btn order-btn disabled">Text to Order</a>
+      </article>
+
+      <!-- Espresso Kristinni -->
+      <article class="card drink" data-canonical="Espresso Martini">
+        <h3>Espresso Kristinni</h3>
+        <p>Vodka, rich espresso, and coffee liqueur — silky and uplifting.</p>
+        <p class="stock-info"></p>
+        <a class="btn gold order-btn" href="#">📩 Text to Order</a>
+      </article>
+    </section>
+
+    <footer class="footer">
+      <div>Ask our team for recommendations. Please drink responsibly.</div>
+      <div class="hr"></div>
+    </footer>
+  </div>
+
+<script>
+  // Configure your SMS destination number here (digits only, with country code)
+  const smsNumber = '19844809046';
+  function buildSmsHref(number, bodyText) {
+    const encoded = encodeURIComponent(bodyText);
+    return `sms:+${number}?&body=${encoded}`;
+  }
+
+  (async () => {
+    try {
+      const res = await fetch('https://whatsapp-cocktail-bot.onrender.com/menu');
+      const data = await res.json();
+      const menuMap = {};
+      data.forEach(item => { menuMap[item.canonical] = item.stock_count; });
+
+      document.querySelectorAll('.drink').forEach(drinkEl => {
+        const canonical = drinkEl.getAttribute('data-canonical');
+        const stock = menuMap[canonical] || 0;
+        const info = drinkEl.querySelector('.stock-info');
+        let badgeEl = drinkEl.querySelector('.badge');
+        const btn = drinkEl.querySelector('.order-btn');
+        const displayName = drinkEl.querySelector('h3').innerText.trim();
+
+        info.textContent = stock > 0 ? `${stock} left` : 'Out of stock';
+
+        if (stock === 0) {
+          if (!badgeEl) { badgeEl = document.createElement('div'); badgeEl.className = 'badge'; drinkEl.insertBefore(badgeEl, drinkEl.firstChild); }
+          badgeEl.textContent = 'Out of Stock';
+          btn.classList.add('disabled'); btn.textContent = 'Text to Order'; btn.removeAttribute('href');
+        } else if (stock <= 10) {
+          if (!badgeEl) { badgeEl = document.createElement('div'); badgeEl.className = 'badge low'; drinkEl.insertBefore(badgeEl, drinkEl.firstChild); }
+          badgeEl.textContent = 'Low Stock'; badgeEl.classList.add('low');
+          btn.classList.remove('disabled');
+          btn.textContent = '📩 Text to Order';
+          btn.setAttribute('href', buildSmsHref(smsNumber, `I'd like to order the ${displayName}!`));
+        } else {
+          if (badgeEl) badgeEl.remove();
+          btn.classList.remove('disabled');
+          btn.textContent = '📩 Text to Order';
+          btn.setAttribute('href', buildSmsHref(smsNumber, `I'd like to order the ${displayName}!`));
+        }
+      });
+    } catch (err) {
+      console.error('Stock script error', err);
+    }
+  })();
+</script>
+</body>
+</html>

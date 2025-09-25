@@ -3,48 +3,53 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>🎉 HAPPY BIRTHDAY KRISTIN!!!!</title>
+  <title>The Evening Bar</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./birthday.css" />
+  <link rel="stylesheet" href="./merchant-theme.css" />
 </head>
 <body>
-  <canvas id="confetti"></canvas>
-
-  <main class="card">
-    <h1 class="headline">HAPPY BIRTHDAY <span class="name">KRISTIN!!!!</span></h1>
-    <p class="subtitle">Wishing you a day full of laughs, love, and extra sprinkles. 🧁✨</p>
-
-    <div class="cta-row">
-      <a id="menuLink" class="btn" href="#" target="_blank" rel="noopener">View Party Menu</a>
-      <button id="toggleMusic" class="btn btn-secondary">Play Music</button>
+  <nav class="nav">
+    <div class="nav-inner">
+      <div class="brand">
+        <div class="brand-mark"></div>
+        <div class="brand-name">The Evening Bar</div>
+      </div>
+      <div class="menu-links">
+        <a href="#about">About</a>
+        <a href="#hours">Hours</a>
+        <a id="menuLink" href="bdaymenu-bar.html">Menu</a>
+      </div>
     </div>
+  </nav>
 
-    <section class="chips">
-      <span class="chip">🎈 Balloons</span>
-      <span class="chip">🎂 Cake</span>
-      <span class="chip">🥂 Cheers</span>
-      <span class="chip">💫 Wishes</span>
-    </section>
+  <header class="hero">
+    <div class="inner">
+      <div>
+        <h1>Craft Cocktails, Modern Comfort</h1>
+        <p>Seasonal classics and signature creations served with warmth and style. Join us for an evening to remember.</p>
+        <div class="cta-row">
+          <a id="menuLink2" class="btn btn-primary" href="bdaymenu-bar.html">View Menu</a>
+          <a class="btn btn-ghost" href="#hours">Hours & Location</a>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <img src="https://images.unsplash.com/photo-1544145945-f90425340c7e?q=80&w=1600&auto=format&fit=crop" alt="Cocktail bar"/>
+      </div>
+    </div>
+  </header>
 
-    <footer class="foot">
-      <small>Made with ❤️ for Kristin’s birthday</small>
-    </footer>
-  </main>
+  <section id="about" class="section">
+    <h2>About Us</h2>
+    <p>We blend timeless technique with a playful spirit. Expect balanced cocktails, thoughtful service, and a cozy atmosphere.</p>
+  </section>
 
-  <div class="balloon b1"></div>
-  <div class="balloon b2"></div>
-  <div class="balloon b3"></div>
+  <section id="hours" class="section">
+    <h2>Hours & Location</h2>
+    <p class="muted">Open Thurs–Sun • 5pm–Midnight • Downtown</p>
+  </section>
 
-  <audio id="song" preload="auto">
-    <source src="data:audio/mpeg;base64,//uQZAAAAAAAAAAAAAAAAAAAA..." type="audio/mpeg">
-  </audio>
-
-  <script>
-    // Optional: set your menu URL here (or leave as '#')
-    const MENU_URL = 'bdaymenu.html'; // e.g., 'https://tinyurl.com/53bmccax'
-    document.getElementById('menuLink').href = MENU_URL;
-  </script>
-  <script src="./birthday.js"></script>
+  <footer class="footer">
+    <div class="footer-inner">© The Evening Bar • Please drink responsibly</div>
+  </footer>
 </body>
 </html>
