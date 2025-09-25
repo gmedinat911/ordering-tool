@@ -326,7 +326,7 @@
       if (!cfg || !cfg.appId) return; // OneSignal not configured
       window.OneSignalDeferred = window.OneSignalDeferred || [];
       window.OneSignalDeferred.push(async function(OneSignal) {
-        await OneSignal.init({ appId: cfg.appId });
+        await OneSignal.init({ appId: cfg.appId, serviceWorkerPath: '/sw.js' });
         try {
           const cid = localStorage.getItem('clientId') || '';
           if (cid) { await OneSignal.login(String(cid)); }
