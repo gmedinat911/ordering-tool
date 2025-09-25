@@ -7,6 +7,26 @@ axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 const BACKEND_URL = 'https://whatsapp-cocktail-bot.onrender.com';
 const knownIds = new Set();
 
+// Lightweight beep using Web Audio API (avoids external audio hosting/403)
+function playBeep(durationMs = 180, freq = 880, volume = 0.05) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'sine';
+    o.frequency.value = freq;
+    g.gain.value = volume;
+    o.connect(g).connect(ctx.destination);
+    const now = ctx.currentTime;
+    o.start(now);
+    o.stop(now + durationMs / 1000);
+  } catch (e) {
+    // Fallback: try existing <audio> element if present
+    const el = document.getElementById('newOrderSound');
+    if (el) el.play().catch(() => {});
+  }
+}
+
 function relativeTime(ts) {
   const sec = Math.floor((Date.now() - ts) / 1000);
   if (sec < 60) return 'Just now';
@@ -52,7 +72,7 @@ async function fetchQueue() {
       queueContainer.appendChild(card);
 
       if (isNew) {
-        document.getElementById('newOrderSound').play().catch(() => {});
+        playBeep();
       }
     });
 
