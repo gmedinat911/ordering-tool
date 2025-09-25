@@ -14,6 +14,7 @@
         <button id="refreshBtn" class="bg-blue-500 hover:bg-blue-600 text-white text-sm px-3 py-1 rounded">Refresh</button>
         <button id="clearBtn" class="bg-yellow-500 hover:bg-yellow-600 text-white text-sm px-3 py-1 rounded">Clear Queue</button>
         <button id="stockBtn" class="bg-green-500 hover:bg-green-600 text-white text-sm px-3 py-1 rounded">Stock</button>
+        <button id="testPushBtn" class="bg-purple-500 hover:bg-purple-600 text-white text-sm px-3 py-1 rounded">Test Push</button>
         <button id="logoutBtn" class="bg-red-500 hover:bg-red-600 text-white text-sm px-3 py-1 rounded">Logout</button>
       </div>
     </div>
@@ -26,5 +27,17 @@
     <audio id="newOrderSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_03e3a98b39.mp3?filename=notification-1-124903.mp3" preload="auto"></audio>
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <script src="dashboard.js"></script>
+    <script>
+      document.getElementById('testPushBtn').addEventListener('click', async () => {
+        const clientId = prompt("Enter clientId for test push");
+        if (!clientId) return;
+        try {
+          await axios.post('/push/test', { clientId });
+          alert("Push sent");
+        } catch (error) {
+          alert("Failed to send push");
+        }
+      });
+    </script>
   </body>
 </html>
