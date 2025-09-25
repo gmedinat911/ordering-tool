@@ -79,6 +79,7 @@ app.get('/webhook', (req, res) => {
 const webPush = require('web-push');
 let VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
 let VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
+const PUSH_SUBJECT = process.env.PUSH_SUBJECT || process.env.PUBLIC_URL || 'https://whatsapp-cocktail-bot.onrender.com';
 if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
   const { publicKey, privateKey } = webPush.generateVAPIDKeys();
   VAPID_PUBLIC_KEY = publicKey;
@@ -86,8 +87,7 @@ if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
   console.log('⚠️ Generated ephemeral VAPID keys. Set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY in env to persist.');
   console.log('VAPID_PUBLIC_KEY:', VAPID_PUBLIC_KEY);
 }
-webPush.setVapidDetails(`mailto:${process.env.CONTACT_EMAIL || 'admin@example.com'}`,
-  VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+webPush.setVapidDetails(PUSH_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 const subscriptions = new Map(); // clientId -> subscription
 
 app.get('/vapidPublicKey', (req, res) => {
@@ -141,11 +141,12 @@ async function sendPushToClient(clientId, payload) {
   // Choose matching VAPID private key for the stored public key
   const { publicKey, privateKey } = resolveVapidPair(pubKey);
   try {
-    if (DEBUG) console.log('🔔 Sending push with VAPID pub key prefix:', (publicKey||'').slice(0, 16));
+    const endpointHost = (()=>{ try { return new URL(sub.endpoint).host; } catch { return 'unknown'; } })();
+    if (DEBUG) console.log('🔔 Sending push', { host: endpointHost, vapidPubPrefix: (publicKey||'').slice(0,16) });
     await webPush.sendNotification(
       sub,
       JSON.stringify(payload),
-      { vapidDetails: { subject: `mailto:${process.env.CONTACT_EMAIL || 'admin@example.com'}`, publicKey, privateKey } }
+      { vapidDetails: { subject: PUSH_SUBJECT, publicKey, privateKey } }
     );
   }
   catch (e) {
