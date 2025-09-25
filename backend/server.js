@@ -265,6 +265,29 @@ app.get('/whatsapp/status', (req, res) => {
 });
 
 /* ------------------------------------------------------------------
+ * WhatsApp diagnostics (JWT protected): verifies Graph access to phoneId
+ * ------------------------------------------------------------------*/
+app.get('/whatsapp/diag', verifyJWT, async (req, res) => {
+  try {
+    const token = process.env.WHATSAPP_TOKEN || process.env.ACCESS_TOKEN;
+    const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+    if (!token || !phoneId) {
+      return res.status(400).json({ ok: false, reason: 'missing_env', tokenPresent: !!token, phoneIdPresent: !!phoneId });
+    }
+    const url = `https://graph.facebook.com/v19.0/${phoneId}`;
+    const r = await axios.get(url, {
+      headers: { Authorization: `Bearer ${token}` },
+      params: { fields: 'id,name,display_phone_number,verified_name' }
+    });
+    return res.json({ ok: true, phone: r.data });
+  } catch (e) {
+    const status = e?.response?.status || 500;
+    const data = e?.response?.data || { message: e.message };
+    return res.status(status).json({ ok: false, error: data });
+  }
+});
+
+/* ------------------------------------------------------------------
  * Login route (frontend auth)
  * ------------------------------------------------------------------*/
 app.post('/login', (req, res) => {
