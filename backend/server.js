@@ -84,6 +84,8 @@ app.post('/subscribe', (req, res) => {
     const id = clientId || String(Date.now()) + Math.random().toString(36).slice(2);
     if (!subscription || !subscription.endpoint) return res.status(400).json({ ok: false });
     subscriptions.set(id, subscription);
+    // Persist in DB
+    upsertSubscription(id, subscription).catch(e => console.error('❌ upsertSubscription error:', e.message));
     return res.json({ ok: true, clientId: id });
   } catch (e) {
     console.error('❌ /subscribe error:', e);
@@ -92,10 +94,38 @@ app.post('/subscribe', (req, res) => {
 });
 
 async function sendPushToClient(clientId, payload) {
-  const sub = subscriptions.get(clientId);
+  let sub = subscriptions.get(clientId);
+  if (!sub) {
+    try { sub = await getSubscription(clientId); if (sub) subscriptions.set(clientId, sub); } catch {}
+  }
   if (!sub) return;
   try { await webPush.sendNotification(sub, JSON.stringify(payload)); }
   catch (e) { console.error('❌ web-push error:', e.statusCode, e.body || e.message); }
+}
+
+// DB helpers for push subscriptions
+async function ensureSubscriptionTable() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+      client_id TEXT PRIMARY KEY,
+      subscription JSONB NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+}
+async function upsertSubscription(clientId, subscription) {
+  await pool.query(
+    `INSERT INTO push_subscriptions (client_id, subscription, created_at, updated_at)
+     VALUES ($1, $2, NOW(), NOW())
+     ON CONFLICT (client_id)
+     DO UPDATE SET subscription = EXCLUDED.subscription, updated_at = NOW()`,
+    [clientId, subscription]
+  );
+}
+async function getSubscription(clientId) {
+  const { rows } = await pool.query('SELECT subscription FROM push_subscriptions WHERE client_id = $1', [clientId]);
+  return rows[0]?.subscription || null;
 }
 
 /* ------------------------------------------------------------------
@@ -465,6 +495,7 @@ app.post('/order', async (req, res) => {
 (async () => {
   try {
     await seedDrinks();
+    await ensureSubscriptionTable();
   } catch (err) {
     console.error('Fatal error during drink-seeding:', err);
     process.exit(1);
