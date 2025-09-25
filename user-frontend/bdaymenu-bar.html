@@ -212,42 +212,6 @@
     setTimeout(() => el.remove(), 2500);
   }
 
-  function urlBase64ToUint8Array(base64String) {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
-    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-    const rawData = atob(base64); const outputArray = new Uint8Array(rawData.length);
-    for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
-    return outputArray;
-  }
-
-  async function ensurePushSubscription() {
-    try {
-      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
-      const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
-      let sub = await reg.pushManager.getSubscription();
-      if (!sub) {
-        const { key } = await (await fetch(`${API_BASE}/vapidPublicKey`)).json();
-        const vapidKey = urlBase64ToUint8Array(key);
-        sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: vapidKey });
-      }
-      const resp = await fetch(`${API_BASE}/subscribe`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ subscription: sub, clientId })});
-      const out = await resp.json();
-      if (out && out.clientId) {
-        clientId = out.clientId;
-        storage.setItem('clientId', clientId);
-        // Also log into OneSignal with the new clientId so backend can target by alias
-        try {
-          if (window.OneSignalDeferred) {
-            window.OneSignalDeferred.push(async (OneSignal) => {
-              try { await OneSignal.login(String(clientId)); }
-              catch (e) { console.warn('OneSignal login after subscribe failed', e); }
-            });
-          }
-        } catch {}
-      }
-      return sub;
-    } catch (e) { console.warn('Push subscription failed', e); return null; }
-  }
 
   // Listen for done events via SSE
   try {
@@ -280,7 +244,6 @@
       [btnWA, btnON].forEach(btn => { if (btn) btn.classList.add('disabled'); });
       if (btnON) btnON.textContent = '⏳ Placing...';
       if ('Notification' in window && Notification.permission === 'default') { try { await Notification.requestPermission(); } catch {} }
-      await ensurePushSubscription();
       const resp = await fetch(ORDER_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ canonical, drink: displayName, clientId, name: prof.name })});
       if (resp.ok) {
         let result = {}; try { result = await resp.json(); } catch {}
