@@ -58,6 +58,22 @@ app.get('/events', (req, res) => {
 });
 
 /* ------------------------------------------------------------------
+ * Meta/WhatsApp webhook verification (GET)
+ * ------------------------------------------------------------------*/
+app.get('/webhook', (req, res) => {
+  const mode = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+  const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || process.env.VERIFY_TOKEN;
+  if (mode === 'subscribe' && token && challenge && token === VERIFY_TOKEN) {
+    if (DEBUG) console.log('✅ Webhook verified');
+    return res.status(200).send(challenge);
+  }
+  if (DEBUG) console.log('⛔ Webhook verify failed:', { mode, tokenPresent: !!token });
+  return res.sendStatus(403);
+});
+
+/* ------------------------------------------------------------------
  * Web Push setup and subscription store
  * ------------------------------------------------------------------*/
 const webPush = require('web-push');
@@ -223,11 +239,15 @@ const sendWhatsApp = (to, text) =>
  * ------------------------------------------------------------------*/
 async function adminHandler(req, res, next) {
   try {
+    if (DEBUG) console.log('📩 Incoming webhook payload keys:', Object.keys(req.body || {}));
     const message = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
     const from = message?.from;
     const fromE = toE164(from);
     const text = (message?.text?.body || '').trim();
-    if (!ADMIN_NUMBERS.includes(fromE)) return next();
+    if (DEBUG) console.log('👤 Webhook from:', { raw: from, e164: fromE, admins: ADMIN_NUMBERS });
+    if (!ADMIN_NUMBERS.length && DEBUG) console.log('⚠️ ADMIN_NUMBERS empty; allowing all senders for admin commands (test mode)');
+    const isAdmin = ADMIN_NUMBERS.length ? ADMIN_NUMBERS.includes(fromE) : true;
+    if (!isAdmin) return next();
     const lower = text.toLowerCase().trim();
     if (['queue', 'clear'].includes(lower) || !isNaN(parseInt(lower, 10))) {
       console.log(`👑 Admin cmd by ${fromE}: ${lower}`);
