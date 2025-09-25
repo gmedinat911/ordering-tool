@@ -12,15 +12,28 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('push', function(event) {
-  let data = {};
-  try { data = event.data ? event.data.json() : {}; } catch (e) {}
-  const title = data.title || 'Order Update';
-  const body = data.body || (data.displayName ? `${data.displayName} is ready!` : 'Your drink is ready!');
-  const options = {
-    body,
-    icon: '/favicon.ico'
-  };
-  event.waitUntil(self.registration.showNotification(title, options));
+  try {
+    // If OneSignal SDK is present, let it handle its own pushes
+    if (event.data) {
+      const rawText = event.data.text();
+      if (rawText && rawText.includes('OneSignal')) {
+        return; // Do not override OneSignal notifications
+      }
+    }
+
+    // Fallback to custom backend notification handling
+    let data = {};
+    try { data = event.data ? event.data.json() : {}; } catch (e) {}
+    const title = data.title || 'Order Update';
+    const body = data.body || (data.displayName ? `${data.displayName} is ready!` : 'Your drink is ready!');
+    const options = {
+      body,
+      icon: '/favicon.ico'
+    };
+    event.waitUntil(self.registration.showNotification(title, options));
+  } catch (e) {
+    console.error('Push handling error', e);
+  }
 });
 
 self.addEventListener('notificationclick', function(event) {
