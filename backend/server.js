@@ -237,6 +237,19 @@ app.post('/login', (req, res) => {
 });
 
 /* ------------------------------------------------------------------
+ * Admin: Generate VAPID keypair (JWT protected)
+ * ------------------------------------------------------------------*/
+app.post('/admin/vapid/generate', verifyJWT, (req, res) => {
+  try {
+    const { publicKey, privateKey } = webPush.generateVAPIDKeys();
+    return res.json({ publicKey, privateKey });
+  } catch (e) {
+    console.error('❌ /admin/vapid/generate error:', e);
+    return res.status(500).json({ ok: false });
+  }
+});
+
+/* ------------------------------------------------------------------
  * WhatsApp admin numbers & helper
  * ------------------------------------------------------------------*/
 function toE164(num) {
