@@ -533,7 +533,11 @@ app.post('/done', verifyJWT, async (req, res) => {
   const idx = queue.findIndex(o => o.id === id);
   if (idx === -1) return res.status(404).send('Order not found');
   const [order] = queue.splice(idx, 1);
-  await sendWhatsApp(order.from, `🍸 Your "${order.displayName}" is ready!`);
+  // Only send WhatsApp to the customer if 'from' is a valid phone number
+  const toCust = toE164(order.from);
+  if (toCust) {
+    await sendWhatsApp(toCust, `🍸 Your "${order.displayName}" is ready!`);
+  }
   // Broadcast completion event (include clientId so the originating browser can match even after reload)
   try { broadcast('order_done', { id: order.id, cocktail: order.cocktail, displayName: order.displayName, clientId: order.clientId || null }); } catch {}
   // Send push to the originating client if available
