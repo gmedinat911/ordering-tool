@@ -28,15 +28,55 @@ const port = process.env.PORT || 3000;
 const DEBUG = /^true$/i.test(process.env.DEBUG || 'true');
 
 /* ------------------------------------------------------------------
- * In-memory state
+ * In-memory state + optional Redis Pub/Sub for cross-instance events
  * ------------------------------------------------------------------*/
 let queue = [];
-// Simple in-memory SSE clients
 const sseClients = new Set();
+
+// Optional Redis (Pub/Sub)
+let redisPub = null;
+let redisSub = null;
+const REDIS_URL = process.env.REDIS_URL || process.env.UPSTASH_REDIS_URL;
+if (REDIS_URL) {
+  try {
+    const IORedis = require('ioredis');
+    redisPub = new IORedis(REDIS_URL, { lazyConnect: true, maxRetriesPerRequest: null });
+    redisSub = new IORedis(REDIS_URL, { lazyConnect: true, maxRetriesPerRequest: null });
+    (async () => {
+      try {
+        await redisPub.connect();
+        await redisSub.connect();
+        await redisSub.subscribe('events');
+        if (DEBUG) console.log('🔗 Redis Pub/Sub connected');
+        redisSub.on('message', (channel, message) => {
+          if (channel !== 'events') return;
+          try {
+            const { event, payload } = JSON.parse(message);
+            const msg = `event: ${event}\n` + `data: ${JSON.stringify(payload)}\n\n`;
+            for (const res of sseClients) {
+              try { res.write(msg); } catch (_) {}
+            }
+          } catch (e) { if (DEBUG) console.log('Redis message parse error:', e.message); }
+        });
+      } catch (e) {
+        console.error('❌ Redis connect/subscribe error:', e.message);
+        redisPub = null; redisSub = null;
+      }
+    })();
+  } catch (e) {
+    console.error('❌ Redis client init failed:', e.message);
+  }
+}
+
 function broadcast(event, payload) {
-  const msg = `event: ${event}\n` + `data: ${JSON.stringify(payload)}\n\n`;
-  for (const res of sseClients) {
-    try { res.write(msg); } catch (_) {}
+  if (redisPub) {
+    try { redisPub.publish('events', JSON.stringify({ event, payload })); } catch (_) {}
+  } else {
+    // Fallback to local-only broadcast
+    const msg = `event: ${event}\n` + `data: ${JSON.stringify(payload)}\n\n`;
+    for (const res of sseClients) {
+      try { res.write(msg); } catch (_) {}
+    }
   }
 }
 
