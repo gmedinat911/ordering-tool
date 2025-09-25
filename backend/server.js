@@ -151,9 +151,12 @@ async function sendPushToClient(clientId, payload) {
   catch (e) {
     console.error('❌ web-push error:', e.statusCode, e.body || e.message);
     const code = e && (e.statusCode || e.code);
-    // 401 InvalidSignature or 410 Gone → delete stale subscription so client will re-subscribe
-    if (code === 401 || code === 410) {
-      try { await deleteSubscription(clientId); if (DEBUG) console.log('🧹 Deleted stale subscription for', clientId); } catch {}
+    // 401 InvalidSignature, 403 invalid JWT, or 410 Gone → delete stale subscription so client will re-subscribe
+    if (code === 401 || code === 403 || code === 410) {
+      try {
+        if (DEBUG) console.log('🧹 Cleaning subscription for', clientId, 'stored key prefix:', (pubKey||'').slice(0,16), 'selected key prefix:', (publicKey||'').slice(0,16));
+        await deleteSubscription(clientId);
+      } catch {}
     }
   }
 }
