@@ -93,6 +93,21 @@ app.post('/subscribe', (req, res) => {
   }
 });
 
+/* ------------------------------------------------------------------
+ * Admin: Test Push to a clientId
+ * ------------------------------------------------------------------*/
+app.post('/push/test', verifyJWT, async (req, res) => {
+  try {
+    const { clientId, title, body } = req.body || {};
+    if (!clientId) return res.status(400).json({ ok: false, error: 'clientId is required' });
+    await sendPushToClient(clientId, { title: title || 'Test Notification', body: body || 'This is a test push from the dashboard.' });
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error('❌ /push/test error', e);
+    return res.status(500).json({ ok: false });
+  }
+});
+
 async function sendPushToClient(clientId, payload) {
   let sub = subscriptions.get(clientId);
   if (!sub) {
@@ -183,16 +198,24 @@ app.post('/login', (req, res) => {
 /* ------------------------------------------------------------------
  * WhatsApp admin numbers & helper
  * ------------------------------------------------------------------*/
+function toE164(num) {
+  if (!num) return '';
+  const trimmed = String(num).trim();
+  if (trimmed.startsWith('+')) return trimmed;
+  const digits = trimmed.replace(/\D/g, '');
+  return digits ? `+${digits}` : '';
+}
+
 const ADMIN_NUMBERS = (process.env.ADMIN_NUMBERS || '')
   .split(',')
-  .map(n => n.trim())
+  .map(n => toE164(n))
   .filter(Boolean);
 
 const sendWhatsApp = (to, text) =>
   axios.post(
     `https://graph.facebook.com/v19.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
-    { messaging_product: 'whatsapp', to, text: { body: text } },
-    { headers: { Authorization: `Bearer ${process.env.ACCESS_TOKEN}` } }
+    { messaging_product: 'whatsapp', to: toE164(to), text: { body: text } },
+    { headers: { Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}` } }
   );
 
 /* ------------------------------------------------------------------
@@ -202,36 +225,56 @@ async function adminHandler(req, res, next) {
   try {
     const message = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
     const from = message?.from;
+    const fromE = toE164(from);
     const text = (message?.text?.body || '').trim();
-    if (!ADMIN_NUMBERS.includes(from)) return next();
+    if (!ADMIN_NUMBERS.includes(fromE)) return next();
     const lower = text.toLowerCase().trim();
     if (['queue', 'clear'].includes(lower) || !isNaN(parseInt(lower, 10))) {
-      console.log(`👑 Admin cmd by ${from}: ${lower}`);
+      console.log(`👑 Admin cmd by ${fromE}: ${lower}`);
     }
     if (lower === 'queue') {
       if (!queue.length) {
-        await sendWhatsApp(from, '📭 Queue is empty.');
+        await sendWhatsApp(fromE, '📭 Queue is empty.');
       } else {
-        const summary = queue.map((o, i) => `#${i+1} • ${o.name} → ${o.cocktail}`).join('\n');
-        await sendWhatsApp(from, `📋 Current orders (${queue.length}):\n${summary}\n\nReply with a number to mark done.`);
+        const summary = queue
+          .map((o, i) => `#${i+1} [id:${o.id}] • ${o.name} → ${o.cocktail}`)
+          .join('\n');
+        await sendWhatsApp(fromE,
+          `📋 Current orders (${queue.length}):\n${summary}\n\nReply with a number to mark done (e.g., 1) or send: done id <orderId>`
+        );
       }
       return res.sendStatus(200);
     }
     if (lower === 'clear') {
       queue = [];
-      await sendWhatsApp(from, '🗑️ Queue cleared.');
+      await sendWhatsApp(fromE, '🗑️ Queue cleared.');
       return res.sendStatus(200);
     }
+    // Support 'done id <orderId>' or 'id <orderId>'
+    const idMatch = lower.match(/^\s*(?:done\s+)?id\s+(\d{6,})\s*$/);
+    if (idMatch) {
+      const orderId = parseInt(idMatch[1], 10);
+      const qIdx = queue.findIndex(o => o.id === orderId);
+      if (qIdx === -1) {
+        await sendWhatsApp(fromE, `❌ No order with id ${orderId} on this server instance.`);
+        return res.sendStatus(200);
+      }
+      const [order] = queue.splice(qIdx, 1);
+      await sendWhatsApp(order.from, `🍸 Your "${order.displayName}" is ready!`);
+      await sendWhatsApp(fromE, `✅ Order id ${orderId} served.`);
+      return res.sendStatus(200);
+    }
+    // Fallback: numeric position (1-based)
     const idx = parseInt(lower, 10);
     if (!isNaN(idx)) {
       const pos = idx - 1;
       if (pos < 0 || pos >= queue.length) {
-        await sendWhatsApp(from, `❌ No order #${idx}.`);
+        await sendWhatsApp(fromE, `❌ No order #${idx}.`);
         return res.sendStatus(200);
       }
       const [order] = queue.splice(pos, 1);
       await sendWhatsApp(order.from, `🍸 Your "${order.displayName}" is ready!`);
-      await sendWhatsApp(from, `✅ Order #${idx} served.`);
+      await sendWhatsApp(fromE, `✅ Order #${idx} served.`);
       return res.sendStatus(200);
     }
     if (DEBUG) console.log(`⚠️ Unknown admin text, passing to customer flow: "${text}"`);
