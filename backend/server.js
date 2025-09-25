@@ -245,7 +245,7 @@ app.get('/health', async (req, res) => {
 app.get('/whatsapp/status', (req, res) => {
   try {
     const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID || '';
-    const hasToken = !!(process.env.WHATSAPP_TOKEN || process.env.ACCESS_TOKEN);
+    const hasToken = !!process.env.ACCESS_TOKEN;
     const hasVerify = !!(process.env.WHATSAPP_VERIFY_TOKEN || process.env.VERIFY_TOKEN);
     const canSend = hasToken && !!phoneId;
     const details = {
@@ -253,6 +253,7 @@ app.get('/whatsapp/status', (req, res) => {
       phoneIdPresent: !!phoneId,
       phoneId: phoneId || null,
       tokenPresent: hasToken,
+      tokenSource: hasToken ? 'ACCESS_TOKEN' : null,
       verifyTokenPresent: hasVerify,
       adminNumbers: ADMIN_NUMBERS,
       canSend
@@ -269,7 +270,7 @@ app.get('/whatsapp/status', (req, res) => {
  * ------------------------------------------------------------------*/
 app.get('/whatsapp/diag', verifyJWT, async (req, res) => {
   try {
-    const token = process.env.WHATSAPP_TOKEN || process.env.ACCESS_TOKEN;
+    const token = process.env.ACCESS_TOKEN;
     const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
     if (!token || !phoneId) {
       return res.status(400).json({ ok: false, reason: 'missing_env', tokenPresent: !!token, phoneIdPresent: !!phoneId });
@@ -333,10 +334,10 @@ const ADMIN_NUMBERS = (process.env.ADMIN_NUMBERS || '')
   .filter(Boolean);
 
 async function sendWhatsApp(to, text) {
-  const token = process.env.WHATSAPP_TOKEN || process.env.ACCESS_TOKEN;
+  const token = process.env.ACCESS_TOKEN;
   const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
   if (!token || !phoneId) {
-    console.error('❌ Missing WhatsApp credentials. Set WHATSAPP_TOKEN (or ACCESS_TOKEN) and WHATSAPP_PHONE_NUMBER_ID in your environment.');
+    console.error('❌ Missing WhatsApp credentials. Set ACCESS_TOKEN and WHATSAPP_PHONE_NUMBER_ID in your environment.');
     return;
   }
   try {
