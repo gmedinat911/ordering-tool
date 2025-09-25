@@ -196,6 +196,31 @@ app.get('/health', async (req, res) => {
 });
 
 /* ------------------------------------------------------------------
+ * Diagnostics: WhatsApp credential status (no secrets exposed)
+ * ------------------------------------------------------------------*/
+app.get('/whatsapp/status', (req, res) => {
+  try {
+    const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID || '';
+    const hasToken = !!(process.env.WHATSAPP_TOKEN || process.env.ACCESS_TOKEN);
+    const hasVerify = !!(process.env.WHATSAPP_VERIFY_TOKEN || process.env.VERIFY_TOKEN);
+    const canSend = hasToken && !!phoneId;
+    const details = {
+      ok: true,
+      phoneIdPresent: !!phoneId,
+      phoneId: phoneId || null,
+      tokenPresent: hasToken,
+      verifyTokenPresent: hasVerify,
+      adminNumbers: ADMIN_NUMBERS,
+      canSend
+    };
+    return res.json(details);
+  } catch (e) {
+    console.error('❌ /whatsapp/status error:', e);
+    return res.status(500).json({ ok: false });
+  }
+});
+
+/* ------------------------------------------------------------------
  * Login route (frontend auth)
  * ------------------------------------------------------------------*/
 app.post('/login', (req, res) => {
