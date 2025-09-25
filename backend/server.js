@@ -140,6 +140,18 @@ app.get('/vapidPublicKey', (req, res) => {
   res.json({ key: VAPID_PUBLIC_KEY });
 });
 
+/* ------------------------------------------------------------------
+ * OneSignal config (frontend fetches this to init SDK)
+ * ------------------------------------------------------------------*/
+app.get('/onesignal/config', (req, res) => {
+  try {
+    const appId = process.env.ONESIGNAL_APP_ID || null;
+    return res.json({ appId });
+  } catch (e) {
+    return res.json({ appId: null });
+  }
+});
+
 app.post('/subscribe', (req, res) => {
   try {
     const { subscription, clientId } = req.body || {};
@@ -162,13 +174,43 @@ app.post('/push/test', verifyJWT, async (req, res) => {
   try {
     const { clientId, title, body } = req.body || {};
     if (!clientId) return res.status(400).json({ ok: false, error: 'clientId is required' });
-    await sendPushToClient(clientId, { title: title || 'Test Notification', body: body || 'This is a test push from the dashboard.' });
+    const usedOneSignal = await sendOneSignalIfConfigured(clientId, { title: title || 'Test Notification', body: body || 'This is a test push from the dashboard.' });
+    if (!usedOneSignal) {
+      await sendPushToClient(clientId, { title: title || 'Test Notification', body: body || 'This is a test push from the dashboard.' });
+    }
     return res.json({ ok: true });
   } catch (e) {
     console.error('❌ /push/test error', e);
     return res.status(500).json({ ok: false });
   }
 });
+
+/* ------------------------------------------------------------------
+ * OneSignal helper (optional)
+ * ------------------------------------------------------------------*/
+async function sendOneSignalIfConfigured(clientId, payload) {
+  const appId = process.env.ONESIGNAL_APP_ID;
+  const apiKey = process.env.ONESIGNAL_REST_API_KEY;
+  if (!appId || !apiKey) return false; // not configured
+  try {
+    await axios.post('https://api.onesignal.com/notifications', {
+      app_id: appId,
+      headings: payload.title ? { en: payload.title } : undefined,
+      contents: { en: payload.body || 'Update' },
+      include_aliases: { external_id: [String(clientId)] },
+      url: process.env.PUBLIC_URL ? `${process.env.PUBLIC_URL}/bdaymenu-bar.html` : undefined
+    }, {
+      headers: {
+        'Authorization': `Basic ${apiKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    return true;
+  } catch (e) {
+    console.error('❌ OneSignal send error:', e?.response?.status || '', e?.response?.data || e.message);
+    return false;
+  }
+}
 
 async function sendPushToClient(clientId, payload) {
   let sub = subscriptions.get(clientId);
