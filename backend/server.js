@@ -40,10 +40,16 @@ const REDIS_URL = process.env.REDIS_URL || process.env.UPSTASH_REDIS_URL;
 if (REDIS_URL) {
   try {
     const IORedis = require('ioredis');
-    redisPub = new IORedis(REDIS_URL, { lazyConnect: true, maxRetriesPerRequest: null });
-    redisSub = new IORedis(REDIS_URL, { lazyConnect: true, maxRetriesPerRequest: null });
+    const isTls = /^rediss:\/\//i.test(REDIS_URL);
+    const redisOpts = { lazyConnect: true, maxRetriesPerRequest: null };
+    if (isTls) redisOpts.tls = {};
+    redisPub = new IORedis(REDIS_URL, redisOpts);
+    redisSub = new IORedis(REDIS_URL, redisOpts);
     (async () => {
       try {
+        // Attach error handlers to avoid unhandled error events
+        redisPub.on('error', (e) => console.error('[redis:pub] error:', e?.message || e));
+        redisSub.on('error', (e) => console.error('[redis:sub] error:', e?.message || e));
         await redisPub.connect();
         await redisSub.connect();
         await redisSub.subscribe('events');
