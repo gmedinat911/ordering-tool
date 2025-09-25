@@ -303,5 +303,25 @@
     } catch (err) { console.error('Stock script error', err); }
   })();
 </script>
+
+<!-- OneSignal Web Push (v16) -->
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  (async () => {
+    try {
+      const cfg = await fetch(`${API_BASE}/onesignal/config`).then(r => r.json()).catch(() => ({ appId: null }));
+      if (!cfg || !cfg.appId) return; // OneSignal not configured
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      window.OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.init({ appId: cfg.appId });
+        try {
+          const cid = localStorage.getItem('clientId') || '';
+          if (cid) { await OneSignal.login(String(cid)); }
+        } catch (e) { console.warn('OneSignal login failed', e); }
+        try { OneSignal.Slidedown.promptPush(); } catch {}
+      });
+    } catch (e) { console.warn('OneSignal init error', e); }
+  })();
+</script>
 </body>
 </html>
