@@ -633,7 +633,16 @@ app.post('/done', verifyJWT, async (req, res) => {
   // Broadcast completion event (include clientId so the originating browser can match even after reload)
   try { broadcast('order_done', { id: order.id, cocktail: order.cocktail, displayName: order.displayName, clientId: order.clientId || null }); } catch {}
   // Send push to the originating client if available
-  try { if (order.clientId) { await sendPushToClient(order.clientId, { type: 'order_done', id: order.id, cocktail: order.cocktail, displayName: order.displayName }); } } catch {}
+  try {
+    if (order.clientId) {
+      const payload = { type: 'order_done', id: order.id, cocktail: order.cocktail, displayName: order.displayName, title: 'Your drink is ready! 🎉', body: `${order.displayName} is ready for pickup.` };
+      // Try OneSignal first (if configured), then fallback to Web Push
+      const usedOS = await sendOneSignalIfConfigured(order.clientId, payload);
+      if (!usedOS) {
+        await sendPushToClient(order.clientId, payload);
+      }
+    }
+  } catch {}
   return res.send('Done');
 });
 
