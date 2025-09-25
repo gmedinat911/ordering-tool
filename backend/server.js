@@ -314,8 +314,8 @@ app.post('/done', verifyJWT, async (req, res) => {
   if (idx === -1) return res.status(404).send('Order not found');
   const [order] = queue.splice(idx, 1);
   await sendWhatsApp(order.from, `🍸 Your "${order.displayName}" is ready!`);
-  // Broadcast completion event
-  try { broadcast('order_done', { id: order.id, cocktail: order.cocktail, displayName: order.displayName }); } catch {}
+  // Broadcast completion event (include clientId so the originating browser can match even after reload)
+  try { broadcast('order_done', { id: order.id, cocktail: order.cocktail, displayName: order.displayName, clientId: order.clientId || null }); } catch {}
   // Send push to the originating client if available
   try { if (order.clientId) { await sendPushToClient(order.clientId, { type: 'order_done', id: order.id, cocktail: order.cocktail, displayName: order.displayName }); } } catch {}
   return res.send('Done');

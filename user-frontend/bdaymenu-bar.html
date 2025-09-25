@@ -161,8 +161,10 @@
     es.addEventListener('order_done', (evt) => {
       try {
         const payload = JSON.parse(evt.data || '{}');
-        if (payload && payload.id && pendingOrders.has(payload.id)) {
-          pendingOrders.delete(payload.id);
+        const matchesId = payload && payload.id && pendingOrders.has(payload.id);
+        const matchesClient = payload && payload.clientId && payload.clientId === clientId;
+        if (matchesId || matchesClient) {
+          if (matchesId && payload.id) pendingOrders.delete(payload.id);
           if ('Notification' in window && Notification.permission === 'granted') {
             try { new Notification('Your drink is ready! 🎉', { body: `${payload.displayName || payload.cocktail} is ready for pickup.` }); }
             catch { showToast(`${payload.displayName || payload.cocktail} is ready!`); }
