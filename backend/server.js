@@ -141,13 +141,21 @@ async function sendPushToClient(clientId, payload) {
   // Choose matching VAPID private key for the stored public key
   const { publicKey, privateKey } = resolveVapidPair(pubKey);
   try {
+    if (DEBUG) console.log('🔔 Sending push with VAPID pub key prefix:', (publicKey||'').slice(0, 16));
     await webPush.sendNotification(
       sub,
       JSON.stringify(payload),
       { vapidDetails: { subject: `mailto:${process.env.CONTACT_EMAIL || 'admin@example.com'}`, publicKey, privateKey } }
     );
   }
-  catch (e) { console.error('❌ web-push error:', e.statusCode, e.body || e.message); }
+  catch (e) {
+    console.error('❌ web-push error:', e.statusCode, e.body || e.message);
+    const code = e && (e.statusCode || e.code);
+    // 401 InvalidSignature or 410 Gone → delete stale subscription so client will re-subscribe
+    if (code === 401 || code === 410) {
+      try { await deleteSubscription(clientId); if (DEBUG) console.log('🧹 Deleted stale subscription for', clientId); } catch {}
+    }
+  }
 }
 
 // Resolve a VAPID keypair given a public key, supporting one legacy pair via env
@@ -189,6 +197,10 @@ async function upsertSubscription(clientId, subscription, vapidPublicKey) {
 async function getSubscriptionRow(clientId) {
   const { rows } = await pool.query('SELECT subscription, vapid_public_key FROM push_subscriptions WHERE client_id = $1', [clientId]);
   return rows[0] || null;
+}
+
+async function deleteSubscription(clientId) {
+  await pool.query('DELETE FROM push_subscriptions WHERE client_id = $1', [clientId]);
 }
 
 /* ------------------------------------------------------------------
