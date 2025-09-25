@@ -197,6 +197,7 @@ async function sendOneSignalIfConfigured(clientId, payload) {
       app_id: appId,
       headings: payload.title ? { en: payload.title } : undefined,
       contents: { en: payload.body || 'Update' },
+      target_channel: 'web_push',
       include_aliases: { external_id: [String(clientId)] },
       url: process.env.PUBLIC_URL ? `${process.env.PUBLIC_URL}/bdaymenu-bar.html` : undefined
     }, {
