@@ -207,7 +207,20 @@
         sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: vapidKey });
       }
       const resp = await fetch(`${API_BASE}/subscribe`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ subscription: sub, clientId })});
-      const out = await resp.json(); if (out && out.clientId) { clientId = out.clientId; storage.setItem('clientId', clientId); }
+      const out = await resp.json();
+      if (out && out.clientId) {
+        clientId = out.clientId;
+        storage.setItem('clientId', clientId);
+        // Also log into OneSignal with the new clientId so backend can target by alias
+        try {
+          if (window.OneSignalDeferred) {
+            window.OneSignalDeferred.push(async (OneSignal) => {
+              try { await OneSignal.login(String(clientId)); }
+              catch (e) { console.warn('OneSignal login after subscribe failed', e); }
+            });
+          }
+        } catch {}
+      }
       return sub;
     } catch (e) { console.warn('Push subscription failed', e); return null; }
   }
