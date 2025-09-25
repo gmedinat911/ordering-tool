@@ -70,7 +70,7 @@ body{font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-
 .footer-inner{max-width:1100px; margin:0 auto; padding:26px 20px; color:var(--muted)}
 
 /* Buttons inside cards */
-.order-btn{background:var(--gold); color:#111; padding:10px 14px; border-radius:999px; font-weight:800; text-decoration:none; display:inline-flex; align-items:center; gap:8px; box-shadow: 0 10px 24px rgba(200,169,106,.25)}
+.order-btn{background:var(--gold); color:#111; padding:10px 14px; border-radius:999px; font-weight:800; text-decoration:none; display:inline-flex; align-items:center; gap:8px; box-shadow: 0 10px 24px rgba(200,169,106,.25); line-height:1}
 .order-btn.disabled{background:#444; color:#888; box-shadow:none; cursor:not-allowed}
 .order-btn + .order-btn{margin-left:8px}
 
@@ -83,3 +83,16 @@ body{font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-
 /* Utilities */
 .center{max-width:1100px; margin:0 auto; padding:0 20px}
 .muted{color:var(--muted)}
+
+/* Aligned footer row inside each card */
+.card-footer{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:12px; flex-wrap:wrap}
+.card-footer .stock-info{color:var(--muted); font-weight:700; opacity:.95}
+.card-footer .actions{display:flex; align-items:center; gap:8px}
+.card-footer .actions .order-btn{min-height:40px; padding:10px 14px}
+
+/* Mobile-friendly stacking */
+@media (max-width: 520px){
+  .card-footer{flex-direction:column; align-items:stretch; gap:10px}
+  .card-footer .actions{display:grid; grid-template-columns: 1fr 1fr; gap:8px}
+  .card-footer .actions .order-btn{width:100%; justify-content:center}
+}

@@ -28,11 +28,15 @@
         </div>
         <h3>Kristin Bday Margarita</h3>
         <p>Tequila, fresh lime, and agave. Bright, clean, and perfectly balanced.</p>
-        <p class="stock-info"></p>
-        <a class="btn gold order-btn whatsapp-btn" href="#">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" style="height:16px"> Order
-        </a>
-        <a class="btn order-btn order-now" href="#">🛒 Order Now</a>
+        <div class="card-footer">
+          <div class="stock-info"></div>
+          <div class="actions">
+            <a class="btn gold order-btn whatsapp-btn" href="#">
+              <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" style="height:16px"> Order
+            </a>
+            <a class="btn order-btn order-now" href="#">🛒 Order Now</a>
+          </div>
+        </div>
       </article>
 
       <!-- Kristin Mojito -->
@@ -43,9 +47,13 @@
         </div>
         <h3>Kristin Mojito</h3>
         <p>Fresh mint, lime, cane sugar, white rum, and a crisp soda lift.</p>
-        <p class="stock-info"></p>
-        <a class="btn order-btn whatsapp-btn disabled">Order</a>
-        <a class="btn order-btn order-now disabled">🛒 Order Now</a>
+        <div class="card-footer">
+          <div class="stock-info"></div>
+          <div class="actions">
+            <a class="btn order-btn whatsapp-btn disabled">Order</a>
+            <a class="btn order-btn order-now disabled">🛒 Order Now</a>
+          </div>
+        </div>
       </article>
 
       <!-- Kristin Gin Southside -->
@@ -56,9 +64,13 @@
         </div>
         <h3>Kristin Gin Southside</h3>
         <p>Gin, mint, and lime with chilled clarity. A timeless classic.</p>
-        <p class="stock-info"></p>
-        <a class="btn order-btn whatsapp-btn disabled">Order</a>
-        <a class="btn order-btn order-now disabled">🛒 Order Now</a>
+        <div class="card-footer">
+          <div class="stock-info"></div>
+          <div class="actions">
+            <a class="btn order-btn whatsapp-btn disabled">Order</a>
+            <a class="btn order-btn order-now disabled">🛒 Order Now</a>
+          </div>
+        </div>
       </article>
 
       <!-- Paloma Paradise -->
@@ -69,9 +81,13 @@
         </div>
         <h3>Paloma Paradise</h3>
         <p>Tequila and grapefruit with a touch of sea salt for a zesty finish.</p>
-        <p class="stock-info"></p>
-        <a class="btn order-btn whatsapp-btn disabled">Order</a>
-        <a class="btn order-btn order-now disabled">🛒 Order Now</a>
+        <div class="card-footer">
+          <div class="stock-info"></div>
+          <div class="actions">
+            <a class="btn order-btn whatsapp-btn disabled">Order</a>
+            <a class="btn order-btn order-now disabled">🛒 Order Now</a>
+          </div>
+        </div>
       </article>
 
       <!-- Cosmo Crush -->
@@ -82,9 +98,13 @@
         </div>
         <h3>Cosmo Crush</h3>
         <p>Vodka, cranberry, orange liqueur, and fresh lime — chilled to perfection.</p>
-        <p class="stock-info"></p>
-        <a class="btn order-btn whatsapp-btn disabled">Order</a>
-        <a class="btn order-btn order-now disabled">🛒 Order Now</a>
+        <div class="card-footer">
+          <div class="stock-info"></div>
+          <div class="actions">
+            <a class="btn order-btn whatsapp-btn disabled">Order</a>
+            <a class="btn order-btn order-now disabled">🛒 Order Now</a>
+          </div>
+        </div>
       </article>
 
       <!-- Espresso Kristinni -->
@@ -94,11 +114,15 @@
         </div>
         <h3>Espresso Kristinni</h3>
         <p>Vodka, rich espresso, and coffee liqueur — silky and uplifting.</p>
-        <p class="stock-info"></p>
-        <a class="btn gold order-btn whatsapp-btn" href="#">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" style="height:16px"> Order
-        </a>
-        <a class="btn order-btn order-now" href="#">🛒 Order Now</a>
+        <div class="card-footer">
+          <div class="stock-info"></div>
+          <div class="actions">
+            <a class="btn gold order-btn whatsapp-btn" href="#">
+              <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" style="height:16px"> Order
+            </a>
+            <a class="btn order-btn order-now" href="#">🛒 Order Now</a>
+          </div>
+        </div>
       </article>
     </section>
 
@@ -262,7 +286,7 @@
         let result = {}; try { result = await resp.json(); } catch {}
         if (result && result.id) pendingOrders.add(result.id);
         showToast('We received your order. It\'s being prepared!');
-        const match = /^(\d+)/.exec(info.textContent || ''); let left = match ? parseInt(match[1], 10) : 0; if (left > 0) left -= 1; info.textContent = left > 0 ? `${left} left` : 'Out of stock';
+        const match = /^(\d+)/.exec(info.textContent || ''); let left = match ? parseInt(match[1], 10) : 0; if (left > 0) left -= 1; info.textContent = left > 0 ? `${left} left` : '';
         if (left === 0) {
           let b = drinkEl.querySelector('.badge'); if (!b) { b = document.createElement('div'); b.className='badge'; drinkEl.insertBefore(b, drinkEl.firstChild); }
           b.textContent = 'Out of Stock';
@@ -272,14 +296,16 @@
           [btnWA, btnON].forEach(btn => { if (btn) btn.classList.remove('disabled'); });
         }
       } else if (resp.status === 409) {
-        info.textContent = 'Out of stock'; let b = drinkEl.querySelector('.badge'); if (!b) { b = document.createElement('div'); b.className='badge'; drinkEl.insertBefore(b, drinkEl.firstChild); } b.textContent = 'Out of Stock';
+        info.textContent = ''; let b = drinkEl.querySelector('.badge'); if (!b) { b = document.createElement('div'); b.className='badge'; drinkEl.insertBefore(b, drinkEl.firstChild); } b.textContent = 'Out of Stock';
       } else {
         console.error('Order failed', await resp.text()); if (btnON) btnON.textContent = '❌ Try Again'; showToast('Order failed. Please try again.'); setTimeout(() => { if (btnON) btnON.textContent = origONText || '🛒 Order Now'; }, 2000);
       }
     } catch (e) {
       console.error('Order error', e); if (btnON) btnON.textContent = '❌ Error'; showToast('An error occurred. Please try again.'); setTimeout(() => { if (btnON) btnON.textContent = origONText || '🛒 Order Now'; }, 2000);
     } finally {
-      if (!/Out of stock/i.test(info.textContent)) { [btnWA, btnON].forEach(btn => { if (btn) btn.classList.remove('disabled'); }); }
+      const badge = drinkEl.querySelector('.badge');
+      const isOut = badge && /Out of Stock/i.test(badge.textContent || '');
+      if (!isOut) { [btnWA, btnON].forEach(btn => { if (btn) btn.classList.remove('disabled'); }); }
     }
   }
 
@@ -297,7 +323,7 @@
         const btnWA = drinkEl.querySelector('.order-btn.whatsapp-btn');
         const btnON = drinkEl.querySelector('.order-btn.order-now');
         const displayName = drinkEl.querySelector('h3').innerText.trim();
-        info.textContent = stock > 0 ? `${stock} left` : 'Out of stock';
+        info.textContent = stock > 0 ? `${stock} left` : '';
 
         const text = encodeURIComponent(`I'd like to order the ${displayName}!`);
         if (stock === 0) {
