@@ -228,10 +228,10 @@ const ADMIN_NUMBERS = (process.env.ADMIN_NUMBERS || '')
   .filter(Boolean);
 
 async function sendWhatsApp(to, text) {
-  const token = process.env.WHATSAPP_TOKEN;
+  const token = process.env.WHATSAPP_TOKEN || process.env.ACCESS_TOKEN;
   const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
   if (!token || !phoneId) {
-    console.error('❌ Missing WhatsApp credentials. Set WHATSAPP_TOKEN and WHATSAPP_PHONE_NUMBER_ID in your environment.');
+    console.error('❌ Missing WhatsApp credentials. Set WHATSAPP_TOKEN (or ACCESS_TOKEN) and WHATSAPP_PHONE_NUMBER_ID in your environment.');
     return;
   }
   try {
