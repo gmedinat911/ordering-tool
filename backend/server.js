@@ -101,7 +101,7 @@ app.post('/subscribe', (req, res) => {
     if (!subscription || !subscription.endpoint) return res.status(400).json({ ok: false });
     subscriptions.set(id, subscription);
     // Persist in DB
-    upsertSubscription(id, subscription).catch(e => console.error('❌ upsertSubscription error:', e.message));
+    upsertSubscription(id, subscription, VAPID_PUBLIC_KEY).catch(e => console.error('❌ upsertSubscription error:', e.message));
     return res.json({ ok: true, clientId: id });
   } catch (e) {
     console.error('❌ /subscribe error:', e);
@@ -126,12 +126,41 @@ app.post('/push/test', verifyJWT, async (req, res) => {
 
 async function sendPushToClient(clientId, payload) {
   let sub = subscriptions.get(clientId);
+  let pubKey = VAPID_PUBLIC_KEY;
   if (!sub) {
-    try { sub = await getSubscription(clientId); if (sub) subscriptions.set(clientId, sub); } catch {}
+    try {
+      const row = await getSubscriptionRow(clientId);
+      if (row) {
+        sub = row.subscription;
+        pubKey = row.vapid_public_key || VAPID_PUBLIC_KEY;
+        subscriptions.set(clientId, sub);
+      }
+    } catch {}
   }
   if (!sub) return;
-  try { await webPush.sendNotification(sub, JSON.stringify(payload)); }
+  // Choose matching VAPID private key for the stored public key
+  const { publicKey, privateKey } = resolveVapidPair(pubKey);
+  try {
+    await webPush.sendNotification(
+      sub,
+      JSON.stringify(payload),
+      { vapidDetails: { subject: `mailto:${process.env.CONTACT_EMAIL || 'admin@example.com'}`, publicKey, privateKey } }
+    );
+  }
   catch (e) { console.error('❌ web-push error:', e.statusCode, e.body || e.message); }
+}
+
+// Resolve a VAPID keypair given a public key, supporting one legacy pair via env
+function resolveVapidPair(requestedPublic) {
+  const pairs = [
+    { pub: process.env.VAPID_PUBLIC_KEY, priv: process.env.VAPID_PRIVATE_KEY },
+    { pub: process.env.VAPID_PUBLIC_KEY_2, priv: process.env.VAPID_PRIVATE_KEY_2 },
+    { pub: process.env.VAPID_PUBLIC_KEY_3, priv: process.env.VAPID_PRIVATE_KEY_3 },
+  ].filter(p => p && p.pub && p.priv);
+  const found = pairs.find(p => p.pub === requestedPublic);
+  if (found) return { publicKey: found.pub, privateKey: found.priv };
+  // Fallback to current
+  return { publicKey: VAPID_PUBLIC_KEY, privateKey: VAPID_PRIVATE_KEY };
 }
 
 // DB helpers for push subscriptions
@@ -141,22 +170,25 @@ async function ensureSubscriptionTable() {
       client_id TEXT PRIMARY KEY,
       subscription JSONB NOT NULL,
       created_at TIMESTAMPTZ DEFAULT NOW(),
-      updated_at TIMESTAMPTZ DEFAULT NOW()
+      updated_at TIMESTAMPTZ DEFAULT NOW(),
+      vapid_public_key TEXT
     );
   `);
+  // Add column if it does not exist (for existing deployments)
+  try { await pool.query('ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS vapid_public_key TEXT'); } catch {}
 }
-async function upsertSubscription(clientId, subscription) {
+async function upsertSubscription(clientId, subscription, vapidPublicKey) {
   await pool.query(
-    `INSERT INTO push_subscriptions (client_id, subscription, created_at, updated_at)
-     VALUES ($1, $2, NOW(), NOW())
+    `INSERT INTO push_subscriptions (client_id, subscription, created_at, updated_at, vapid_public_key)
+     VALUES ($1, $2, NOW(), NOW(), $3)
      ON CONFLICT (client_id)
-     DO UPDATE SET subscription = EXCLUDED.subscription, updated_at = NOW()`,
-    [clientId, subscription]
+     DO UPDATE SET subscription = EXCLUDED.subscription, vapid_public_key = EXCLUDED.vapid_public_key, updated_at = NOW()`,
+    [clientId, subscription, vapidPublicKey]
   );
 }
-async function getSubscription(clientId) {
-  const { rows } = await pool.query('SELECT subscription FROM push_subscriptions WHERE client_id = $1', [clientId]);
-  return rows[0]?.subscription || null;
+async function getSubscriptionRow(clientId) {
+  const { rows } = await pool.query('SELECT subscription, vapid_public_key FROM push_subscriptions WHERE client_id = $1', [clientId]);
+  return rows[0] || null;
 }
 
 /* ------------------------------------------------------------------
