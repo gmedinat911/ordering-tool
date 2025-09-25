@@ -115,6 +115,37 @@
 </style>
 <div id="toasts" class="toast-container" aria-live="polite" aria-atomic="true"></div>
 
+<!-- Profile Gate -->
+<style>
+  .gate-overlay{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:9998}
+  .gate-card{background:var(--surface); border:1px solid var(--divider); border-radius:16px; padding:20px; width:min(92vw, 420px); box-shadow:0 30px 50px rgba(0,0,0,.45)}
+  .gate-card h3{font-family:'Playfair Display',serif; margin:0 0 10px}
+  .gate-row{display:flex; gap:10px; margin:10px 0}
+  .gate-card input{flex:1; background:#0f1115; color:var(--cream); border:1px solid var(--divider); border-radius:10px; padding:10px}
+  .gate-actions{display:flex; gap:10px; justify-content:flex-end; margin-top:12px}
+  .btn-small{padding:10px 14px; border-radius:10px; border:1px solid var(--divider); background:transparent; color:var(--cream); cursor:pointer}
+  .btn-small.primary{background:var(--gold); color:#111; border:none}
+  .gate-error{color:#ff9b9b; font-weight:700; font-size:.9rem; min-height:1.2em}
+</style>
+<div id="profileGate" class="gate-overlay" role="dialog" aria-modal="true">
+  <div class="gate-card">
+    <h3>Welcome! Before we begin</h3>
+    <p class="muted">Please tell us your first name and confirm you are of legal drinking age.</p>
+    <div class="gate-row">
+      <input id="gateName" type="text" placeholder="First name" autocomplete="given-name"/>
+    </div>
+    <div class="gate-row">
+      <input id="gateAge" type="number" min="0" placeholder="Your age"/>
+    </div>
+    <div id="gateError" class="gate-error"></div>
+    <div class="gate-actions">
+      <button id="gateCancel" class="btn-small">Cancel</button>
+      <button id="gateContinue" class="btn-small primary">Continue</button>
+    </div>
+  </div>
+  
+</div>
+
 <script>
   const API_BASE = 'https://whatsapp-cocktail-bot.onrender.com';
   const waNumber = '19844809046';
@@ -122,6 +153,32 @@
   const storage = window.localStorage;
   let clientId = storage.getItem('clientId') || '';
   const pendingOrders = new Set();
+  const AGE_MIN = 21; // adjust if needed
+
+  function getProfile(){
+    try { return JSON.parse(storage.getItem('guestProfile') || ''); } catch { return null; }
+  }
+  function saveProfile(p){ storage.setItem('guestProfile', JSON.stringify(p)); }
+  function ensureProfileGate(onDone){
+    const prof = getProfile();
+    if (prof && prof.name && prof.age && Number(prof.age) >= AGE_MIN) { onDone && onDone(prof); return; }
+    const gate = document.getElementById('profileGate');
+    const nameEl = document.getElementById('gateName');
+    const ageEl = document.getElementById('gateAge');
+    const errEl = document.getElementById('gateError');
+    gate.style.display = 'flex';
+    document.getElementById('gateCancel').onclick = () => { gate.style.display = 'none'; };
+    document.getElementById('gateContinue').onclick = () => {
+      const n = (nameEl.value || '').trim();
+      const a = parseInt(ageEl.value || '0', 10);
+      if (!n) { errEl.textContent = 'Please enter your name.'; return; }
+      if (!a || a < AGE_MIN) { errEl.textContent = `You must be at least ${AGE_MIN}.`; return; }
+      const profile = { name: n, age: a, ts: Date.now() };
+      saveProfile(profile);
+      gate.style.display = 'none';
+      onDone && onDone(profile);
+    };
+  }
 
   function showToast(message) {
     const box = document.getElementById('toasts');
@@ -180,11 +237,14 @@
     const info = drinkEl.querySelector('.stock-info');
     const origONText = btnON ? btnON.textContent : '';
     try {
+      // Ensure profile before ordering
+      await new Promise(resolve => ensureProfileGate(() => resolve()));
+      const prof = getProfile() || {};
       [btnWA, btnON].forEach(btn => { if (btn) btn.classList.add('disabled'); });
       if (btnON) btnON.textContent = '⏳ Placing...';
       if ('Notification' in window && Notification.permission === 'default') { try { await Notification.requestPermission(); } catch {} }
       await ensurePushSubscription();
-      const resp = await fetch(ORDER_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ canonical, drink: displayName, clientId })});
+      const resp = await fetch(ORDER_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ canonical, drink: displayName, clientId, name: prof.name })});
       if (resp.ok) {
         let result = {}; try { result = await resp.json(); } catch {}
         if (result && result.id) pendingOrders.add(result.id);
