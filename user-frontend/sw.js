@@ -1,3 +1,13 @@
+self.addEventListener('install', (event) => {
+  // Activate updated SW immediately
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  // Take control of uncontrolled clients without reload
+  event.waitUntil(clients.claim());
+});
+
 self.addEventListener('push', function(event) {
   let data = {};
   try { data = event.data ? event.data.json() : {}; } catch (e) {}
@@ -17,7 +27,8 @@ self.addEventListener('notificationclick', function(event) {
       for (const client of clientList) {
         if ('focus' in client) return client.focus();
       }
-      if (clients.openWindow) return clients.openWindow('./bdaymenu.html');
+      // Open the deployed menu path on your domain
+      if (clients.openWindow) return clients.openWindow('/bdaymenu-bar.html');
     })
   );
 });
