@@ -278,7 +278,7 @@ app.get('/whatsapp/diag', verifyJWT, async (req, res) => {
     const url = `https://graph.facebook.com/v19.0/${phoneId}`;
     const r = await axios.get(url, {
       headers: { Authorization: `Bearer ${token}` },
-      params: { fields: 'id,name,display_phone_number,verified_name' }
+      params: { fields: 'id,display_phone_number,verified_name' }
     });
     return res.json({ ok: true, phone: r.data });
   } catch (e) {
