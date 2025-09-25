@@ -399,7 +399,11 @@ async function adminHandler(req, res, next) {
         return res.sendStatus(200);
       }
       const [order] = queue.splice(qIdx, 1);
-      await sendWhatsApp(order.from, `🍸 Your "${order.displayName}" is ready!`);
+      // Only send WhatsApp to the customer if the origin is a phone number
+      const toCust = toE164(order.from);
+      if (toCust) {
+        await sendWhatsApp(toCust, `🍸 Your "${order.displayName}" is ready!`);
+      }
       await sendWhatsApp(fromE, `✅ Order id ${orderId} served.`);
       return res.sendStatus(200);
     }
@@ -412,7 +416,11 @@ async function adminHandler(req, res, next) {
         return res.sendStatus(200);
       }
       const [order] = queue.splice(pos, 1);
-      await sendWhatsApp(order.from, `🍸 Your "${order.displayName}" is ready!`);
+      // Only send WhatsApp to the customer if the origin is a phone number
+      const toCust = toE164(order.from);
+      if (toCust) {
+        await sendWhatsApp(toCust, `🍸 Your "${order.displayName}" is ready!`);
+      }
       await sendWhatsApp(fromE, `✅ Order #${idx} served.`);
       return res.sendStatus(200);
     }
