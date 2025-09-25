@@ -170,7 +170,6 @@
   
 </div>
 
-<script>
   const API_BASE = 'https://whatsapp-cocktail-bot.onrender.com';
   const waNumber = '19844809046';
   const ORDER_URL = `${API_BASE}/order`;
@@ -311,9 +310,7 @@
 <script>
   (async () => {
     try {
-      const cfg = await fetch('https://whatsapp-cocktail-bot.onrender.com/onesignal/config')
-        .then(r => r.json())
-        .catch(() => ({ appId: null }));
+      const cfg = await fetch(`${API_BASE}/onesignal/config`).then(r => r.json()).catch(() => ({ appId: null }));
       if (!cfg || !cfg.appId) return; // OneSignal not configured
       window.OneSignalDeferred = window.OneSignalDeferred || [];
       window.OneSignalDeferred.push(async function(OneSignal) {
