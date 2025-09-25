@@ -119,26 +119,6 @@ app.get('/webhook', (req, res) => {
   return res.sendStatus(403);
 });
 
-/* ------------------------------------------------------------------
- * Web Push setup and subscription store
- * ------------------------------------------------------------------*/
-const webPush = require('web-push');
-let VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
-let VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
-const PUSH_SUBJECT = process.env.PUSH_SUBJECT || process.env.PUBLIC_URL || 'https://whatsapp-cocktail-bot.onrender.com';
-if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
-  const { publicKey, privateKey } = webPush.generateVAPIDKeys();
-  VAPID_PUBLIC_KEY = publicKey;
-  VAPID_PRIVATE_KEY = privateKey;
-  console.log('⚠️ Generated ephemeral VAPID keys. Set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY in env to persist.');
-  console.log('VAPID_PUBLIC_KEY:', VAPID_PUBLIC_KEY);
-}
-webPush.setVapidDetails(PUSH_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
-const subscriptions = new Map(); // clientId -> subscription
-
-app.get('/vapidPublicKey', (req, res) => {
-  res.json({ key: VAPID_PUBLIC_KEY });
-});
 
 /* ------------------------------------------------------------------
  * OneSignal config (frontend fetches this to init SDK)
@@ -152,21 +132,6 @@ app.get('/onesignal/config', (req, res) => {
   }
 });
 
-app.post('/subscribe', (req, res) => {
-  try {
-    const { subscription, clientId } = req.body || {};
-    const id = clientId || String(Date.now()) + Math.random().toString(36).slice(2);
-    if (!subscription || !subscription.endpoint) return res.status(400).json({ ok: false });
-    subscriptions.set(id, subscription);
-    // Persist in DB
-    upsertSubscription(id, subscription, VAPID_PUBLIC_KEY).catch(e => console.error('❌ upsertSubscription error:', e.message));
-    return res.json({ ok: true, clientId: id });
-  } catch (e) {
-    console.error('❌ /subscribe error:', e);
-    return res.status(500).json({ ok: false });
-  }
-});
-
 /* ------------------------------------------------------------------
  * Admin: Test Push to a clientId
  * ------------------------------------------------------------------*/
@@ -174,10 +139,7 @@ app.post('/push/test', verifyJWT, async (req, res) => {
   try {
     const { clientId, title, body } = req.body || {};
     if (!clientId) return res.status(400).json({ ok: false, error: 'clientId is required' });
-    const usedOneSignal = await sendOneSignalIfConfigured(clientId, { title: title || 'Test Notification', body: body || 'This is a test push from the dashboard.' });
-    if (!usedOneSignal) {
-      await sendPushToClient(clientId, { title: title || 'Test Notification', body: body || 'This is a test push from the dashboard.' });
-    }
+    await sendOneSignalIfConfigured(clientId, { title: title || 'Test Notification', body: body || 'This is a test push from the dashboard.' });
     return res.json({ ok: true });
   } catch (e) {
     console.error('❌ /push/test error', e);
@@ -211,89 +173,6 @@ async function sendOneSignalIfConfigured(clientId, payload) {
     console.error('❌ OneSignal send error:', e?.response?.status || '', e?.response?.data || e.message);
     return false;
   }
-}
-
-async function sendPushToClient(clientId, payload) {
-  let sub = subscriptions.get(clientId);
-  let pubKey = VAPID_PUBLIC_KEY;
-  if (!sub) {
-    try {
-      const row = await getSubscriptionRow(clientId);
-      if (row) {
-        sub = row.subscription;
-        pubKey = row.vapid_public_key || VAPID_PUBLIC_KEY;
-        subscriptions.set(clientId, sub);
-      }
-    } catch {}
-  }
-  if (!sub) return;
-  // Choose matching VAPID private key for the stored public key
-  const { publicKey, privateKey } = resolveVapidPair(pubKey);
-  try {
-    const endpointHost = (()=>{ try { return new URL(sub.endpoint).host; } catch { return 'unknown'; } })();
-    if (DEBUG) console.log('🔔 Sending push', { host: endpointHost, vapidPubPrefix: (publicKey||'').slice(0,16) });
-    await webPush.sendNotification(
-      sub,
-      JSON.stringify(payload),
-      { vapidDetails: { subject: PUSH_SUBJECT, publicKey, privateKey } }
-    );
-  }
-  catch (e) {
-    console.error('❌ web-push error:', e.statusCode, e.body || e.message);
-    const code = e && (e.statusCode || e.code);
-    // 401 InvalidSignature, 403 invalid JWT, or 410 Gone → delete stale subscription so client will re-subscribe
-    if (code === 401 || code === 403 || code === 410) {
-      try {
-        if (DEBUG) console.log('🧹 Cleaning subscription for', clientId, 'stored key prefix:', (pubKey||'').slice(0,16), 'selected key prefix:', (publicKey||'').slice(0,16));
-        await deleteSubscription(clientId);
-      } catch {}
-    }
-  }
-}
-
-// Resolve a VAPID keypair given a public key, supporting one legacy pair via env
-function resolveVapidPair(requestedPublic) {
-  const pairs = [
-    { pub: process.env.VAPID_PUBLIC_KEY, priv: process.env.VAPID_PRIVATE_KEY },
-    { pub: process.env.VAPID_PUBLIC_KEY_2, priv: process.env.VAPID_PRIVATE_KEY_2 },
-    { pub: process.env.VAPID_PUBLIC_KEY_3, priv: process.env.VAPID_PRIVATE_KEY_3 },
-  ].filter(p => p && p.pub && p.priv);
-  const found = pairs.find(p => p.pub === requestedPublic);
-  if (found) return { publicKey: found.pub, privateKey: found.priv };
-  // Fallback to current
-  return { publicKey: VAPID_PUBLIC_KEY, privateKey: VAPID_PRIVATE_KEY };
-}
-
-// DB helpers for push subscriptions
-async function ensureSubscriptionTable() {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS push_subscriptions (
-      client_id TEXT PRIMARY KEY,
-      subscription JSONB NOT NULL,
-      created_at TIMESTAMPTZ DEFAULT NOW(),
-      updated_at TIMESTAMPTZ DEFAULT NOW(),
-      vapid_public_key TEXT
-    );
-  `);
-  // Add column if it does not exist (for existing deployments)
-  try { await pool.query('ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS vapid_public_key TEXT'); } catch {}
-}
-async function upsertSubscription(clientId, subscription, vapidPublicKey) {
-  await pool.query(
-    `INSERT INTO push_subscriptions (client_id, subscription, created_at, updated_at, vapid_public_key)
-     VALUES ($1, $2, NOW(), NOW(), $3)
-     ON CONFLICT (client_id)
-     DO UPDATE SET subscription = EXCLUDED.subscription, vapid_public_key = EXCLUDED.vapid_public_key, updated_at = NOW()`,
-    [clientId, subscription, vapidPublicKey]
-  );
-}
-async function getSubscriptionRow(clientId) {
-  const { rows } = await pool.query('SELECT subscription, vapid_public_key FROM push_subscriptions WHERE client_id = $1', [clientId]);
-  return rows[0] || null;
-}
-
-async function deleteSubscription(clientId) {
-  await pool.query('DELETE FROM push_subscriptions WHERE client_id = $1', [clientId]);
 }
 
 /* ------------------------------------------------------------------
@@ -637,11 +516,7 @@ app.post('/done', verifyJWT, async (req, res) => {
   try {
     if (order.clientId) {
       const payload = { type: 'order_done', id: order.id, cocktail: order.cocktail, displayName: order.displayName, title: 'Your drink is ready! 🎉', body: `${order.displayName} is ready for pickup.` };
-      // Try OneSignal first (if configured), then fallback to Web Push
-      const usedOS = await sendOneSignalIfConfigured(order.clientId, payload);
-      if (!usedOS) {
-        await sendPushToClient(order.clientId, payload);
-      }
+      await sendOneSignalIfConfigured(order.clientId, payload);
     }
   } catch {}
   return res.send('Done');
@@ -791,7 +666,7 @@ app.post('/order', async (req, res) => {
 (async () => {
   try {
     await seedDrinks();
-    await ensureSubscriptionTable();
+    // No need to ensureSubscriptionTable (legacy web-push logic removed)
   } catch (err) {
     console.error('Fatal error during drink-seeding:', err);
     process.exit(1);
