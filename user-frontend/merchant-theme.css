@@ -74,6 +74,30 @@ body{font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-
 .order-btn.disabled{background:#444; color:#888; box-shadow:none; cursor:not-allowed}
 .order-btn + .order-btn{margin-left:8px}
 
+/* WhatsApp button icon styling */
+.order-btn.whatsapp-btn img {
+  height: 16px;
+  filter: brightness(0) invert(1); /* make icon white so it blends with gold button */
+}
+
+/* Improve badge readability */
+.badge {
+  box-shadow: 0 2px 6px rgba(0,0,0,.4);
+  letter-spacing: .3px;
+}
+
+/* Refine card footer alignment */
+.card-footer {
+  align-items: flex-end;
+}
+.card-footer .stock-info {
+  flex-grow: 1;
+  text-align: left;
+}
+.card-footer .actions {
+  flex-shrink: 0;
+}
+
 .badge{
   position:absolute;
   top:12px;
