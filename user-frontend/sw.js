@@ -13,18 +13,19 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('push', function(event) {
   try {
-    // If OneSignal SDK is present, let it handle its own pushes
     if (event.data) {
       const rawText = event.data.text();
+      console.log('📩 [SW] Push event received. Raw payload:', rawText);
       if (rawText && rawText.includes('OneSignal')) {
-        // Allow OneSignalSDK.sw.js to process normally
-        return;
+        console.log('➡️ [SW] Routing push to OneSignal SDK handler');
+        return; // Allow OneSignalSDK.sw.js to process normally
       }
     }
 
     // Otherwise, fallback to custom backend notification handling
     let data = {};
     try { data = event.data ? event.data.json() : {}; } catch (e) {}
+    console.log('➡️ [SW] Handling push with custom fallback logic. Parsed data:', data);
     const title = data.title || 'Order Update';
     const body = data.body || (data.displayName ? `${data.displayName} is ready!` : 'Your drink is ready!');
     const options = {
@@ -33,19 +34,26 @@ self.addEventListener('push', function(event) {
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
-    console.error('Push handling error', e);
+    console.error('❌ [SW] Push handling error', e);
   }
 });
 
 self.addEventListener('notificationclick', function(event) {
+  console.log('🖱️ [SW] Notification clicked:', event.notification);
   event.notification.close();
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
       for (const client of clientList) {
-        if ('focus' in client) return client.focus();
+        if ('focus' in client) {
+          console.log('➡️ [SW] Focusing existing client window');
+          return client.focus();
+        }
       }
       // Open the deployed menu path on your domain
-      if (clients.openWindow) return clients.openWindow('/bdaymenu-bar.html');
+      if (clients.openWindow) {
+        console.log('➡️ [SW] Opening new window to /bdaymenu-bar.html');
+        return clients.openWindow('/bdaymenu-bar.html');
+      }
     })
   );
 });
