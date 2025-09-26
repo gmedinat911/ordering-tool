@@ -44,6 +44,39 @@
     </table>
   </div>
 
+  <!-- Add Drink Form -->
+  <div class="p-4">
+    <form id="addDrinkForm" class="bg-white shadow rounded p-4 space-y-3">
+      <h2 class="text-lg font-semibold">➕ Add New Drink</h2>
+      <input
+        id="drinkCanonical"
+        placeholder="Canonical (e.g., mojito)"
+        class="border rounded w-full px-3 py-2"
+      />
+      <input
+        id="drinkName"
+        placeholder="Display Name (e.g., Summer Mojito)"
+        class="border rounded w-full px-3 py-2"
+      />
+      <input
+        id="drinkDesc"
+        placeholder="Description"
+        class="border rounded w-full px-3 py-2"
+      />
+      <input
+        id="drinkImg"
+        placeholder="Image URL"
+        class="border rounded w-full px-3 py-2"
+      />
+      <button
+        type="submit"
+        class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+      >
+        Add Drink
+      </button>
+    </form>
+  </div>
+
   <!-- Scripts -->
   <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
   <script src="stock.js"></script>

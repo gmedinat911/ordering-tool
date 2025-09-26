@@ -551,7 +551,46 @@ app.post('/stock', verifyJWT, async (req, res) => {
     res.status(500).send('Stock update failed');
   }
 });
+/* ------------------------------------------------------------------
+ * Admin: Add or Remove Drinks
+ * ------------------------------------------------------------------*/
+const fs = require('fs'); // ensure this is required at the top
 
+app.post('/drinks', verifyJWT, async (req, res) => {
+  const { canonical, display_name, description, image_url } = req.body || {};
+  if (!canonical || !display_name) {
+    return res.status(400).json({ ok: false, error: 'canonical and display_name are required' });
+  }
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO drinks (canonical, display_name, description, image_url, stock_count)
+       VALUES ($1, $2, $3, $4, 20)
+       RETURNING id, canonical, display_name, stock_count, description, image_url`,
+      [canonical, display_name, description || '', image_url || '']
+    );
+
+    // 🆕 Sync drinks.json for fuzzy matching
+    const dm = readDrinkMap();
+    dm[canonical.toLowerCase()] = { canonical, display: display_name };
+    fs.writeFileSync(DRINK_MAP_PATH, JSON.stringify(dm, null, 2));
+
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('❌ /drinks insert error:', err);
+    res.status(500).json({ ok: false, error: 'Insert failed' });
+  }
+});
+
+app.delete('/drinks/:id', verifyJWT, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query('DELETE FROM drinks WHERE id = $1', [id]);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('❌ /drinks delete error:', err);
+    res.status(500).json({ ok: false, error: 'Delete failed' });
+  }
+});
 /* ------------------------------------------------------------------
  * Admin: Reload Drinks Map
  * ------------------------------------------------------------------*/

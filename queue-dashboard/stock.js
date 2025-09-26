@@ -52,6 +52,12 @@ async function fetchStock() {
           >
             -1
           </button>
+          <button 
+            data-id="${drink.id}" 
+            class="delete-btn bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-sm"
+          >
+            Delete
+          </button>
         </td>
       `;
       tbody.appendChild(tr);
@@ -87,6 +93,21 @@ async function fetchStock() {
         }
       });
     });
+
+    // Delete buttons
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = +btn.getAttribute('data-id');
+        if (!confirm('Are you sure you want to delete this drink?')) return;
+        try {
+          await axios.delete(`${BACKEND_URL}/drinks/${id}`);
+          fetchStock();
+        } catch (err) {
+          console.error('Drink delete failed', err);
+          if (err.response?.status === 401) logout();
+        }
+      });
+    });
   } catch (err) {
     console.error('Failed to fetch stock', err);
     if (err.response?.status === 401) logout();
@@ -97,6 +118,30 @@ document.getElementById('logoutBtn').addEventListener('click', logout);
 document.getElementById('backBtn').addEventListener('click', () => {
   window.location.href = 'dashboard.html';
 });
+
+// Add drink form
+const addForm = document.getElementById('addDrinkForm');
+if (addForm) {
+  addForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const canonical = document.getElementById('drinkCanonical').value.trim();
+    const display_name = document.getElementById('drinkName').value.trim();
+    const description = document.getElementById('drinkDesc').value.trim();
+    const image_url = document.getElementById('drinkImg').value.trim();
+    if (!canonical || !display_name) {
+      alert('Canonical and Display Name are required');
+      return;
+    }
+    try {
+      await axios.post(`${BACKEND_URL}/drinks`, { canonical, display_name, description, image_url });
+      addForm.reset();
+      fetchStock();
+    } catch (err) {
+      console.error('Drink add failed', err);
+      if (err.response?.status === 401) logout();
+    }
+  });
+}
 
 window.onload = () => {
   fetchStock();
