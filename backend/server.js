@@ -573,7 +573,7 @@ app.get('/menu', async (req, res) => {
   try {
     console.log('⚙️  /menu handler invoked');
     const { rows } = await pool.query(
-      `SELECT id, canonical, display_name, stock_count
+      `SELECT id, canonical, display_name, stock_count, description, image_url
          FROM drinks
         ORDER BY display_name`
     );

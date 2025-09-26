@@ -8,18 +8,22 @@ const FORCE = /^true$/i.test(process.env.FORCE_SEED || 'false');
 async function seedDrinks() {
   const client = await pool.connect();
   try {
-    // At the top of backend/seedDrinks.js, before CREATE TABLE IF NOT EXISTS…
+    // At the top, add description and image_url columns
     await client.query(`
       ALTER TABLE drinks
-        ADD COLUMN IF NOT EXISTS stock_count INTEGER NOT NULL DEFAULT 20;
+        ADD COLUMN IF NOT EXISTS stock_count INTEGER NOT NULL DEFAULT 20,
+        ADD COLUMN IF NOT EXISTS description TEXT,
+        ADD COLUMN IF NOT EXISTS image_url TEXT;
     `);
-    // Step 1: Ensure the table exists with stock_count
+    // Step 1: Ensure the table exists with description and image_url
     await client.query(`
       CREATE TABLE IF NOT EXISTS drinks (
         id SERIAL PRIMARY KEY,
         canonical TEXT UNIQUE NOT NULL,
         display_name TEXT NOT NULL,
-        stock_count INTEGER NOT NULL DEFAULT 20
+        stock_count INTEGER NOT NULL DEFAULT 20,
+        description TEXT,
+        image_url TEXT
       )
     `);
     console.log('✅ drinks table ensured.');
@@ -40,12 +44,16 @@ async function seedDrinks() {
 
     for (const { canonical, display } of Object.values(DRINK_MAP)) {
       try {
+        const defaultDescription = `A signature cocktail: ${display}`;
+        const defaultImage = `https://source.unsplash.com/600x400/?cocktail,${encodeURIComponent(display)}`;
         await client.query(
-          `INSERT INTO drinks (canonical, display_name, stock_count)
-           VALUES ($1, $2, 20)
+          `INSERT INTO drinks (canonical, display_name, stock_count, description, image_url)
+           VALUES ($1, $2, 20, $3, $4)
            ON CONFLICT (canonical) DO UPDATE
-             SET display_name = EXCLUDED.display_name`,
-          [canonical, display]
+             SET display_name = EXCLUDED.display_name,
+                 description = EXCLUDED.description,
+                 image_url = EXCLUDED.image_url`,
+          [canonical, display, defaultDescription, defaultImage]
         );
         if (DEBUG) console.log(`  ✓ ${display}`);
         successCount++;

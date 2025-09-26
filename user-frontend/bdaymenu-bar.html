@@ -189,14 +189,14 @@
         const img = document.createElement('img');
         img.loading = 'lazy';
         img.alt = item.display_name;
-        img.src = `https://picsum.photos/seed/${encodeURIComponent(item.canonical)}/600/400`;
+        img.src = item.image_url || `https://picsum.photos/seed/${encodeURIComponent(item.canonical)}/600/400`;
         imgWrap.appendChild(img);
 
         const h3 = document.createElement('h3');
         h3.textContent = item.display_name;
 
         const p = document.createElement('p');
-        p.textContent = 'Delicious cocktail from our menu.';
+        p.textContent = item.description || 'Delicious cocktail from our menu.';
 
         const footer = document.createElement('div');
         footer.className = 'card-footer';
