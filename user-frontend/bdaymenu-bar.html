@@ -317,19 +317,25 @@
       window.OneSignalDeferred = window.OneSignalDeferred || [];
       window.OneSignalDeferred.push(async function(OneSignal) {
         await OneSignal.init({ appId: cfg.appId, serviceWorkerPath: '/sw.js' });
+        console.log("✅ OneSignal SDK initialized");
         try {
           const cid = localStorage.getItem('clientId') || '';
           if (cid) { await OneSignal.login(String(cid)); }
         } catch (e) { console.warn('OneSignal login failed', e); }
-        // Debug logs on every load
-        try {
-          const clientIdLog = localStorage.getItem('clientId');
-          console.log("🆔 ClientId (localStorage):", clientIdLog);
-          const pushId = await OneSignal.User.PushSubscription.id;
-          console.log("🔔 OneSignal PushSubscription.id:", pushId);
-        } catch (err) {
-          console.warn("PushSubscription log failed", err);
-        }
+        // Debug logs on every load (with retries)
+        const logStatus = async () => {
+          try {
+            const clientIdLog = localStorage.getItem('clientId');
+            console.log("🆔 ClientId (localStorage):", clientIdLog);
+            const pushId = await OneSignal.User.PushSubscription.id;
+            console.log("🔔 OneSignal PushSubscription.id:", pushId);
+          } catch (err) {
+            console.warn("PushSubscription log failed", err);
+          }
+        };
+        logStatus();
+        setTimeout(logStatus, 3000);
+        setTimeout(logStatus, 7000);
         try { OneSignal.Slidedown.promptPush(); } catch {}
       });
     } catch (e) { console.warn('OneSignal init error', e); }
