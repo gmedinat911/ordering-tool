@@ -321,6 +321,15 @@
           const cid = localStorage.getItem('clientId') || '';
           if (cid) { await OneSignal.login(String(cid)); }
         } catch (e) { console.warn('OneSignal login failed', e); }
+        // Debug logs on every load
+        try {
+          const clientIdLog = localStorage.getItem('clientId');
+          console.log("🆔 ClientId (localStorage):", clientIdLog);
+          const pushId = await OneSignal.User.PushSubscription.id;
+          console.log("🔔 OneSignal PushSubscription.id:", pushId);
+        } catch (err) {
+          console.warn("PushSubscription log failed", err);
+        }
         try { OneSignal.Slidedown.promptPush(); } catch {}
       });
     } catch (e) { console.warn('OneSignal init error', e); }
