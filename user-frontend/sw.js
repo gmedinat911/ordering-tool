@@ -17,11 +17,12 @@ self.addEventListener('push', function(event) {
     if (event.data) {
       const rawText = event.data.text();
       if (rawText && rawText.includes('OneSignal')) {
-        return; // Do not override OneSignal notifications
+        // Allow OneSignalSDK.sw.js to process normally
+        return;
       }
     }
 
-    // Fallback to custom backend notification handling
+    // Otherwise, fallback to custom backend notification handling
     let data = {};
     try { data = event.data ? event.data.json() : {}; } catch (e) {}
     const title = data.title || 'Order Update';
