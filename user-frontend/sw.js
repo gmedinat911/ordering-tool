@@ -30,7 +30,8 @@ self.addEventListener('push', function(event) {
     const body = data.body || (data.displayName ? `${data.displayName} is ready!` : 'Your drink is ready!');
     const options = {
       body,
-      icon: '/favicon.ico'
+      icon: '/favicon.ico',
+      badge: 'https://upload.wikimedia.org/wikipedia/commons/7/72/Cocktail_icon.png'
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
